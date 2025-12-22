@@ -46,3 +46,14 @@ langchain4j:
       response-format: json_object
       log-requests: true
       log-responses: true
+    # SSE流式输出
+    streaming-chat-model:
+      base-url: https://api.deepseek.com
+      api-key: sk-6c636a0794434cf495fc11dae018a034
+      model-name: deepseek-chat
+      # SSE流式响应 不支持 结构化输出
+      # strict-json-schema: true
+      # response-format: json_object
+      max-tokens: 8192
+      log-requests: true
+      log-responses: true

@@ -48,6 +48,14 @@
             <version>1.1.0-beta7</version>
         </dependency>
 
+        <!-- SSE 流式输出 -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-reactor</artifactId>
+            <version>1.1.0-beta7</version>
+        </dependency>
+
+
         <!-- HuTool: https://doc.hutool.cn/pages/index/#%F0%9F%8D%8Amaven -->
         <dependency>
             <groupId>cn.hutool</groupId>
