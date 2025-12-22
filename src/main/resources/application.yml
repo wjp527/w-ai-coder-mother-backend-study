@@ -39,5 +39,10 @@ langchain4j:
       base-url: https://api.deepseek.com
       api-key: <Your API Key>
       model-name: deepseek-chat
+      # 默认最大token数
+      max-retries: 8192
+      # 严格保证结构化输出有效
+      strict-json-schema: true
+      response-format: json_object
       log-requests: true
       log-responses: true
