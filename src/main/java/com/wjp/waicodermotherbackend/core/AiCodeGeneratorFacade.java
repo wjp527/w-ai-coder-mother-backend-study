@@ -4,6 +4,8 @@ import cn.hutool.core.util.StrUtil;
 import com.wjp.waicodermotherbackend.ai.AiCodeGeneratorService;
 import com.wjp.waicodermotherbackend.ai.model.HtmlCodeResult;
 import com.wjp.waicodermotherbackend.ai.model.MultiFileCodeResult;
+import com.wjp.waicodermotherbackend.core.parser.CodeParserExecutor;
+import com.wjp.waicodermotherbackend.core.saver.CodeFileSaverExecutor;
 import com.wjp.waicodermotherbackend.exception.BusinessException;
 import com.wjp.waicodermotherbackend.exception.ErrorCode;
 import com.wjp.waicodermotherbackend.model.enums.CodeGenTypeEnum;
@@ -27,7 +29,7 @@ public class AiCodeGeneratorFacade {
     @Resource
     private AiCodeGeneratorService aiCodeGeneratorService;
 
-
+    // region 单/多文件保存
     /**
      * 生成代码并保存
      * @param userMessage 用户提示词
@@ -43,8 +45,18 @@ public class AiCodeGeneratorFacade {
         }
 
         return switch(codeGenTypeEnum) {
-            case HTML -> generateAndSaveHtmlCode(userMessage);
-            case MULTI_FILE -> generateAndSaveMultiFileCode(userMessage);
+            case HTML -> {
+                // 1、先通过 AI 生成 代码
+                HtmlCodeResult htmlCodeResult = aiCodeGeneratorService.generateHtmlCode(userMessage);
+                // 2、在保存文件
+                yield CodeFileSaverExecutor.saveCode(htmlCodeResult, codeGenTypeEnum);
+            }
+            case MULTI_FILE -> {
+                // 1、先通过 AI 生成 代码
+                MultiFileCodeResult multiFileCodeResult = aiCodeGeneratorService.generateMultiFileCode(userMessage);
+                // 2、在保存文件
+                yield CodeFileSaverExecutor.saveCode(multiFileCodeResult, codeGenTypeEnum);
+            }
             default -> {
                 String errStr = "不支持的代码生成类型:" + codeGenTypeEnum.getValue();
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, errStr);
@@ -52,9 +64,12 @@ public class AiCodeGeneratorFacade {
         };
     }
 
+    // endregion
+
+
     // region 单/多文件SSE保存
     /**
-     * 生成代码并保存 (流式输出)
+     * 统一入口：根据类型生成并保存代码
      * @param userMessage 用户提示词
      * @param codeGenTypeEnum 代码生成类型
      * @return 保存的目录
@@ -68,8 +83,18 @@ public class AiCodeGeneratorFacade {
         }
 
         return switch(codeGenTypeEnum) {
-            case HTML -> generateAndSaveHtmlCodeStream(userMessage);
-            case MULTI_FILE -> generateAndSaveMultiFileCodeStream(userMessage);
+            case HTML -> {
+                // 1、调用Ai获取流式返回的数据
+                Flux<String> result = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
+                // 2、处理代码流
+                yield  processCodeStream(result, CodeGenTypeEnum.HTML);
+            }
+            case MULTI_FILE -> {
+                // 1、调用Ai获取流式返回的数据
+                Flux<String> result = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
+                // 2、处理代码流
+                yield  processCodeStream(result, CodeGenTypeEnum.MULTI_FILE);
+            }
             default -> {
                 String errStr = "不支持的代码生成类型:" + codeGenTypeEnum.getValue();
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, errStr);
@@ -78,58 +103,27 @@ public class AiCodeGeneratorFacade {
     }
 
     /**
-     * 生成 HTML 代码并保存 (流式输出)
-     * @param userMessage 用户提示词
+     * 通用流式代码处理方法
+     * @param codeStream 代码流
+     * @param codeGenTypeEnum 代码生成类型
      * @return 保存的目录
      */
-    private Flux<String> generateAndSaveHtmlCodeStream(String userMessage) {
-        // 1、调用Ai获取流式返回的数据
-        Flux<String> result = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
+    private Flux<String> processCodeStream(Flux<String> codeStream, CodeGenTypeEnum codeGenTypeEnum) {
         // 2、字符串拼接(因为流式输出他是一块一块的，所以需要拼接)
         StringBuilder codeBuilder = new StringBuilder();
         // 3、返回Flux数据
-        return result.doOnNext(chunk -> {
+        return codeStream.doOnNext(chunk -> {
             // 实时收集代码块
             codeBuilder.append(chunk);
         }).doOnComplete(() -> {
             try {
                 // 流式输出完成后，保存代码
                 // 转为String
-                String codeContent = codeBuilder.toString();
-                // 解析代码为对象
-                HtmlCodeResult htmlCodeResult = CodeParser.parseHtmlCode(codeContent);
-                // 保存文件
-                File file = CodeFileSaver.saveHtmlCodeResult(htmlCodeResult);
-                log.info("保存成功，目录为:{}", file.getAbsolutePath());
-            } catch(Exception e) {
-                log.error("保存代码失败", e);
-            }
-        });
-    }
-
-    /**
-     * 生成 多文件 代码并保存 (流式输出)
-     * @param userMessage 用户提示词
-     * @return 保存的目录
-     */
-    private Flux<String> generateAndSaveMultiFileCodeStream(String userMessage) {
-        // 1、调用Ai获取流式返回的数据
-        Flux<String> result = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
-        // 2、字符串拼接(因为流式输出他是一块一块的，所以需要拼接)
-        StringBuilder codeBuilder = new StringBuilder();
-        // 3、返回Flux数据
-        return result.doOnNext(chunk -> {
-            // 实时收集代码块
-            codeBuilder.append(chunk);
-        }).doOnComplete(() -> {
-            try {
-                // 流式输出完成后，保存代码
-                // 转为String
-                String codeContent = codeBuilder.toString();
-                // 解析代码为对象
-                MultiFileCodeResult multiFileCodeResult = CodeParser.parseMultiFileCode(codeContent);;
-                // 保存文件
-                File file = CodeFileSaver.saveMultiFileCodeResult(multiFileCodeResult);
+                String completeCode = codeBuilder.toString();
+                // 使用解析器代码为对象
+                Object multiFileCodeResult = CodeParserExecutor.executeParser(completeCode, codeGenTypeEnum);
+                // 使用保存器保存代码
+                File file = CodeFileSaverExecutor.saveCode(multiFileCodeResult, codeGenTypeEnum);
                 log.info("保存成功,目录为:{}", file.getAbsolutePath());
             } catch(Exception e) {
                 log.error("保存代码失败", e);
@@ -137,32 +131,11 @@ public class AiCodeGeneratorFacade {
         });
     }
 
+
     // endregion
 
-    /**
-     * 生成 HTML 代码并保存
-     * @param userMessage 用户提示词
-     * @return 保存的目录
-     */
-    private File generateAndSaveHtmlCode(String userMessage) {
-        // 1、先通过 AI 生成 代码
-        HtmlCodeResult htmlCodeResult = aiCodeGeneratorService.generateHtmlCode(userMessage);
-        // 2、在保存文件
-        File file = CodeFileSaver.saveHtmlCodeResult(htmlCodeResult);
-        return file;
-    }
 
-    /**
-     * 生成 多文件 代码并保存
-     * @param userMessage 用户提示词
-     * @return 保存的目录
-     */
-    private File generateAndSaveMultiFileCode(String userMessage) {
-        // 1、先通过 AI 生成 代码
-        MultiFileCodeResult multiFileCodeResult = aiCodeGeneratorService.generateMultiFileCode(userMessage);
-        // 2、在保存文件
-        File file = CodeFileSaver.saveMultiFileCodeResult(multiFileCodeResult);
-        return file;
-    }
+
+
 
 }
