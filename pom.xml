@@ -35,6 +35,18 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- LangChain4j: https://docs.langchain4j.dev/get-started/ -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+            <version>1.1.0</version>
+        </dependency>
+        <!-- LangChain4j 和 OpenAI的整合包 对接deepseek模型: https://docs.langchain4j.dev/integrations/language-models/open-ai -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-open-ai-spring-boot-starter</artifactId>
+            <version>1.1.0-beta7</version>
+        </dependency>
 
         <!-- HuTool: https://doc.hutool.cn/pages/index/#%F0%9F%8D%8Amaven -->
         <dependency>

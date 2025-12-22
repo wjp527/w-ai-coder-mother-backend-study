@@ -9,6 +9,10 @@ spring:
     username: root
     password: 123456
 
+  # 运行环境
+  profiles:
+    active: local
+
 server:
   port: 8123
   servlet:
@@ -26,3 +30,14 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
+
+
+# AI
+langchain4j:
+  open-ai:
+    chat-model:
+      base-url: https://api.deepseek.com
+      api-key: <Your API Key>
+      model-name: deepseek-chat
+      log-requests: true
+      log-responses: true
