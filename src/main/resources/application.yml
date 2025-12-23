@@ -49,7 +49,7 @@ langchain4j:
     # SSE流式输出
     streaming-chat-model:
       base-url: https://api.deepseek.com
-      api-key: sk-6c636a0794434cf495fc11dae018a034
+      api-key: <Your API Key>
       model-name: deepseek-chat
       # SSE流式响应 不支持 结构化输出
       # strict-json-schema: true
