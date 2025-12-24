@@ -5,6 +5,8 @@ import com.mybatisflex.core.service.IService;
 import com.wjp.waicodermotherbackend.model.dto.app.AppQueryRequest;
 import com.wjp.waicodermotherbackend.model.dto.app.AppVO;
 import com.wjp.waicodermotherbackend.model.entity.App;
+import com.wjp.waicodermotherbackend.model.entity.User;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -34,4 +36,14 @@ public interface AppService extends IService<App> {
      * @return
      */
     AppVO getAppVO(App app);
+
+
+    /**
+     * 通过聊天生成应用代码
+     * @param appId 应用Id
+     * @param message prompt消息
+     * @param loginUser 登录用户
+     * @return 生成的代码【流式】
+     */
+    Flux<String> chatToGenCode(Long appId, String message, User loginUser);
 }
