@@ -1,7 +1,6 @@
 package com.wjp.waicodermotherbackend.controller;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.collection.CollUtil;
 import com.mybatisflex.core.paginate.Page;
 import com.wjp.waicodermotherbackend.annotation.AuthCheck;
 import com.wjp.waicodermotherbackend.common.BaseResponse;
@@ -10,7 +9,7 @@ import com.wjp.waicodermotherbackend.common.ResultUtils;
 import com.wjp.waicodermotherbackend.constant.UserConstant;
 import com.wjp.waicodermotherbackend.exception.ErrorCode;
 import com.wjp.waicodermotherbackend.exception.ThrowUtils;
-import com.wjp.waicodermotherbackend.model.dto.*;
+import com.wjp.waicodermotherbackend.model.dto.user.*;
 import com.wjp.waicodermotherbackend.model.vo.LoginUserVO;
 import com.wjp.waicodermotherbackend.model.vo.UserVO;
 import jakarta.servlet.http.HttpServletRequest;

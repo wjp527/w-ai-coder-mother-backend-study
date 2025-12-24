@@ -1,9 +1,8 @@
 package com.wjp.waicodermotherbackend.service;
 
-import cn.hutool.core.bean.BeanUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
-import com.wjp.waicodermotherbackend.model.dto.UserQueryRequest;
+import com.wjp.waicodermotherbackend.model.dto.user.UserQueryRequest;
 import com.wjp.waicodermotherbackend.model.entity.User;
 import com.wjp.waicodermotherbackend.model.vo.LoginUserVO;
 import com.wjp.waicodermotherbackend.model.vo.UserVO;

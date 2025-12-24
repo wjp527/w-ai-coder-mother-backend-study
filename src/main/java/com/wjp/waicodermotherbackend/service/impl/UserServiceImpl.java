@@ -8,7 +8,7 @@ import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.wjp.waicodermotherbackend.common.ResultUtils;
 import com.wjp.waicodermotherbackend.exception.BusinessException;
 import com.wjp.waicodermotherbackend.exception.ErrorCode;
-import com.wjp.waicodermotherbackend.model.dto.UserQueryRequest;
+import com.wjp.waicodermotherbackend.model.dto.user.UserQueryRequest;
 import com.wjp.waicodermotherbackend.model.entity.User;
 import com.wjp.waicodermotherbackend.mapper.UserMapper;
 import com.wjp.waicodermotherbackend.model.enums.UserRoleEnum;
