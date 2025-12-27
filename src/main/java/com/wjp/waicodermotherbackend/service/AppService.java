@@ -16,6 +16,26 @@ import java.util.List;
  * @author <a href="https://github.com/wjp527">π</a>
  */
 public interface AppService extends IService<App> {
+
+
+    /**
+     * 通过聊天生成应用代码
+     * @param appId 应用Id
+     * @param message prompt消息
+     * @param loginUser 登录用户
+     * @return 生成的代码【流式】
+     */
+    Flux<String> chatToGenCode(Long appId, String message, User loginUser);
+
+    /**
+     * 部署应用
+     * @param appId 应用Id
+     * @param version 应用版本
+     * @param loginUser 登录用户
+     * @return 部署结果
+     */
+    String deployApp(Long appId, Long version , User loginUser);
+
     /**
      * 获取 AppVO 列表
      * @param appList
@@ -38,12 +58,5 @@ public interface AppService extends IService<App> {
     AppVO getAppVO(App app);
 
 
-    /**
-     * 通过聊天生成应用代码
-     * @param appId 应用Id
-     * @param message prompt消息
-     * @param loginUser 登录用户
-     * @return 生成的代码【流式】
-     */
-    Flux<String> chatToGenCode(Long appId, String message, User loginUser);
+
 }

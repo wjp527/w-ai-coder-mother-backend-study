@@ -5,6 +5,7 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.wjp.waicodermotherbackend.ai.model.HtmlCodeResult;
 import com.wjp.waicodermotherbackend.ai.model.MultiFileCodeResult;
+import com.wjp.waicodermotherbackend.constant.AppConstant;
 import com.wjp.waicodermotherbackend.model.enums.CodeGenTypeEnum;
 
 import java.io.File;
@@ -19,7 +20,7 @@ public class CodeFileSaver {
     /**
      * 文件保存的根目录
      */
-    private static final String FILE_SAVE_ROOT_DIR = System.getProperty("user.dir") + "/tmp/code_output";
+    private static final String FILE_SAVE_ROOT_DIR = AppConstant.CODE_OUTPUT_ROOT_DIR;
 
     /**
      * 保存 HTML 网页代码
@@ -38,8 +39,8 @@ public class CodeFileSaver {
     public static File saveMultiFileCodeResult(MultiFileCodeResult multiFileCodeResult) {
         String baseDirPath = buildUniqueDir(CodeGenTypeEnum.MULTI_FILE.getValue());
         writeToFile(baseDirPath, "index.html", multiFileCodeResult.getHtmlCode());
-        writeToFile(baseDirPath, "index.css", multiFileCodeResult.getCssCode());
-        writeToFile(baseDirPath, "index.js", multiFileCodeResult.getJsCode());
+        writeToFile(baseDirPath, "style.css", multiFileCodeResult.getCssCode());
+        writeToFile(baseDirPath, "script.js", multiFileCodeResult.getJsCode());
         return new File(baseDirPath);
     }
 

@@ -2,11 +2,14 @@ package com.wjp.waicodermotherbackend.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.wjp.waicodermotherbackend.ai.AiCodeGeneratorService;
 import com.wjp.waicodermotherbackend.ai.AiCodeGeneratorServiceFactory;
+import com.wjp.waicodermotherbackend.constant.AppConstant;
 import com.wjp.waicodermotherbackend.core.AiCodeGeneratorFacade;
 import com.wjp.waicodermotherbackend.exception.BusinessException;
 import com.wjp.waicodermotherbackend.exception.ErrorCode;
@@ -24,10 +27,9 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.io.File;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -95,6 +97,67 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         return aiCodeGeneratorFacade.generateAndSaveCodeStream(message,codeGenTypeEnum, appId, version);
     }
 
+    /**
+     * 部署应用
+     * @param appId 应用Id
+     * @param version 应用版本
+     * @param loginUser 登录用户
+     * @return 部署结果
+     */
+    @Override
+    public String deployApp(Long appId, Long version , User loginUser) {
+        // 1、参数校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用Id不能为空");
+        ThrowUtils.throwIf(version == null || version <= 0, ErrorCode.PARAMS_ERROR, "应用版本不能为空");
+        // 2、应用，版本是否存在
+        App app = this.getById(appId);
+        if(app == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        }
+        Integer currentVersion = app.getVersion();
+        if(version > currentVersion) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "应用版本不存在");
+        }
+        // 3、应用创建人才可以部署
+        Long userId = app.getUserId();
+        Long id = loginUser.getId();
+        if(!id.equals(userId)) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无操作权限");
+        }
+        // 4、检查是否有 deployKey
+        String deployKey = app.getDeployKey();
+        // 没有则生成(6位deployKey - 大小写字母 + 数字)
+        if(StrUtil.isBlank(deployKey)) {
+            deployKey = RandomUtil.randomString(6);
+        }
+        // 5、获取代码生成类型，部署原目录路径
+        String codeGenType = app.getCodeGenType();
+        String sourceDirName = codeGenType + "_" + appId;
+        // ${应用生成目录}/${应用类型_appId}
+        String sourceDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + sourceDirName;
+        // 6、检查源目录【应用生成路径】是否存在
+        File sourceDir = new File(sourceDirPath);
+        if(!sourceDir.exists() || !sourceDir.isDirectory()) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "应用代码不存在，请先生成");
+        }
+        // 7、复制文件到部署目录
+        // ${应用部署目录}/${部署Key}/${版本}
+        String deployDirName = AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + deployKey + File.separator + "V" + version;
+        try {
+            FileUtil.copyContent(sourceDir, new File(deployDirName), true);
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "部署失败: " + e.getMessage());
+        }
+        // 8、更新应用的 deployKey 和 部署时间
+        App updateApp = new App();
+        updateApp.setId(appId);
+        updateApp.setDeployKey(deployKey);
+        updateApp.setDeployedTime(LocalDateTime.now());
+        boolean updateResult = this.updateById(updateApp);
+        ThrowUtils.throwIf(!updateResult, ErrorCode.SYSTEM_ERROR, "更新应用失败");
+        // 9、返回可访问的URL
+        return AppConstant.CODE_DEPLOY_HOST + File.separator + deployKey + File.separator + "V" + version;
+    }
 
 
     /**
