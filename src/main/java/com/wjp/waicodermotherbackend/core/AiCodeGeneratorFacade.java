@@ -112,23 +112,41 @@ public class AiCodeGeneratorFacade {
         // 2、字符串拼接(因为流式输出他是一块一块的，所以需要拼接)
         StringBuilder codeBuilder = new StringBuilder();
         // 3、返回Flux数据
-        return codeStream.doOnNext(chunk -> {
-            // 实时收集代码块
-            codeBuilder.append(chunk);
-        }).doOnComplete(() -> {
-            try {
-                // 流式输出完成后，保存代码
-                // 转为String
-                String completeCode = codeBuilder.toString();
-                // 使用解析器代码为对象
-                Object multiFileCodeResult = CodeParserExecutor.executeParser(completeCode, codeGenTypeEnum);
-                // 使用保存器保存代码
-                File file = CodeFileSaverExecutor.saveCode(multiFileCodeResult, codeGenTypeEnum, appId, version);
-                log.info("保存成功,目录为:{}", file.getAbsolutePath());
-            } catch(Exception e) {
-                log.error("保存代码失败", e);
-            }
-        });
+        return codeStream
+                .doOnNext(chunk -> {
+                    // 实时收集代码块
+                    codeBuilder.append(chunk);
+                })
+                .doOnCancel(() -> {
+                    // 当客户端断开连接时，Flux 会被取消
+                    log.warn("【代码流被取消】appId: {}, version: {}, 代码生成已中断，已收集代码长度: {}", 
+                            appId, version, codeBuilder.length());
+                })
+                .doOnComplete(() -> {
+                    long startTime = System.currentTimeMillis();
+                    log.info("【代码流完成】appId: {}, version: {}, 开始保存代码，已收集代码长度: {}", 
+                            appId, version, codeBuilder.length());
+                    
+                    try {
+                        // 流式输出完成后，保存代码
+                        // 转为String
+                        String completeCode = codeBuilder.toString();
+                        // 使用解析器代码为对象
+                        Object multiFileCodeResult = CodeParserExecutor.executeParser(completeCode, codeGenTypeEnum);
+                        // 使用保存器保存代码
+                        File file = CodeFileSaverExecutor.saveCode(multiFileCodeResult, codeGenTypeEnum, appId, version);
+                        long endTime = System.currentTimeMillis();
+                        log.info("【代码保存成功】appId: {}, version: {}, 目录: {}, 耗时: {}ms", 
+                                appId, version, file.getAbsolutePath(), (endTime - startTime));
+                    } catch(Exception e) {
+                        long endTime = System.currentTimeMillis();
+                        log.error("【代码保存失败】appId: {}, version: {}, 耗时: {}ms", 
+                                appId, version, (endTime - startTime), e);
+                    }
+                })
+                .doOnError(error -> {
+                    log.error("【代码流错误】appId: {}, version: {}, 发生错误", appId, version, error);
+                });
     }
 
 

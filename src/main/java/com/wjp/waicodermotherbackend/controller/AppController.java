@@ -27,6 +27,7 @@ import com.wjp.waicodermotherbackend.model.entity.App;
 import com.wjp.waicodermotherbackend.service.AppService;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,6 +40,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/app")
+@Slf4j
 public class AppController {
 
     @Resource
@@ -66,8 +68,27 @@ public class AppController {
         User loginUser = userService.getLoginUser(request);
         // 调用服务生成代码（流式）
         Flux<String> contentFlux = appService.chatToGenCode(appId, message, loginUser);
+        
+        log.info("【SSE请求开始】appId: {}, message: {}", appId, message);
+        
         // 转换为 ServerSenEvent格式(防止空格丢失问题)
         return contentFlux
+                .doOnSubscribe(subscription -> {
+                    log.info("【Flux订阅开始】appId: {}, 连接已建立", appId);
+                })
+                .doOnNext(chunk -> {
+                    log.debug("【发送数据块】appId: {}, 数据长度: {}", appId, chunk.length());
+                })
+                .doOnCancel(() -> {
+                    // 当客户端断开连接时，Spring WebFlux 会取消订阅，触发此回调
+                    log.warn("【Flux被取消】appId: {}, 客户端断开连接，旧请求将被中断", appId);
+                })
+                .doOnTerminate(() -> {
+                    log.info("【Flux终止】appId: {}, 流已正常结束", appId);
+                })
+                .doOnError(error -> {
+                    log.error("【Flux错误】appId: {}, 发生错误", appId, error);
+                })
                 .map(chunk -> {
                     // 将内容包装成JSON对象
                     Map<String, String> wrapper = Map.of("d", chunk);
