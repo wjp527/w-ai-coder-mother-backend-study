@@ -87,13 +87,13 @@ public class AiCodeGeneratorFacade {
                 // 1、调用Ai获取流式返回的数据
                 Flux<String> result = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
                 // 2、处理代码流
-                yield  processCodeStream(result, CodeGenTypeEnum.HTML, appId, version);
+                yield processCodeStream(result, CodeGenTypeEnum.HTML, appId, version);
             }
             case MULTI_FILE -> {
                 // 1、调用Ai获取流式返回的数据
                 Flux<String> result = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
                 // 2、处理代码流
-                yield  processCodeStream(result, CodeGenTypeEnum.MULTI_FILE, appId, version);
+                yield processCodeStream(result, CodeGenTypeEnum.MULTI_FILE, appId, version);
             }
             default -> {
                 String errStr = "不支持的代码生成类型:" + codeGenTypeEnum.getValue();

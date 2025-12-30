@@ -19,15 +19,19 @@ import com.wjp.waicodermotherbackend.model.dto.app.AppVO;
 import com.wjp.waicodermotherbackend.model.entity.App;
 import com.wjp.waicodermotherbackend.mapper.AppMapper;
 import com.wjp.waicodermotherbackend.model.entity.User;
+import com.wjp.waicodermotherbackend.model.enums.ChatHistoryMessageTypeEnum;
 import com.wjp.waicodermotherbackend.model.enums.CodeGenTypeEnum;
 import com.wjp.waicodermotherbackend.model.vo.UserVO;
 import com.wjp.waicodermotherbackend.service.AppService;
+import com.wjp.waicodermotherbackend.service.ChatHistoryService;
 import com.wjp.waicodermotherbackend.service.UserService;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -38,10 +42,14 @@ import java.util.stream.Collectors;
  * @author <a href="https://github.com/wjp527">π</a>
  */
 @Service
+@Slf4j
 public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppService{
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private ChatHistoryService chatHistoryService;
 
     /**
      * AI 服务
@@ -92,9 +100,30 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(codeGenType);
         ThrowUtils.throwIf(codeGenTypeEnum == null, ErrorCode.SYSTEM_ERROR, "代码生成类型错误");
 
-        // 5、调用 AI服务生成代码
+        // 5. 将用户的消息保存到对话记忆里
+        chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
+
+        // 6、调用 AI服务生成代码
         // 这里不使用 app 里面的提示词，是因为这个方法不仅仅用于创建应用，后面还需要修改，多轮对话，反不能一直用最一开始的提示词吧
-        return aiCodeGeneratorFacade.generateAndSaveCodeStream(message,codeGenTypeEnum, appId, version);
+        Flux<String> contentFlux = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId, version);
+
+        // 7、收集AI响应内容并在完成后记录到对话历史
+        StringBuilder aiResponseBuilder = new StringBuilder();
+        return contentFlux.map(chunk -> {
+            // 收集AI响应
+            aiResponseBuilder.append(chunk);
+            return chunk;
+        }).doOnComplete(() -> {
+            // 流式响应完成后，将AI消息填充到对话历史
+            String aiResponse = aiResponseBuilder.toString();
+            if(StrUtil.isNotBlank(aiResponse)) {
+                chatHistoryService.addChatMessage(appId, aiResponse, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+            }
+        }).doOnError(error -> {
+            // 如果 AI 回复失败，也需要保存到回话历史
+            String errorMessage =  "AI 回复失败:" + error.getMessage();
+            chatHistoryService.addChatMessage(appId, errorMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+        });
     }
 
     /**
@@ -159,6 +188,32 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         return AppConstant.CODE_DEPLOY_HOST + File.separator + deployKey + File.separator + "V" + version;
     }
 
+    /**
+     * 删除应用时关联删除对话历史
+     *
+     * @param id 应用ID
+     * @return 是否成功
+     */
+    @Override
+    public boolean removeById(Serializable id) {
+        if (id == null) {
+            return false;
+        }
+        // 转换为 Long 类型
+        Long appId = Long.valueOf(id.toString());
+        if (appId <= 0) {
+            return false;
+        }
+        // 先删除关联的对话历史
+        try {
+            chatHistoryService.deleteByAppId(appId);
+        } catch (Exception e) {
+            // 记录日志但不阻止应用删除
+            log.error("删除应用关联对话历史失败: {}", e.getMessage());
+        }
+        // 删除应用
+        return super.removeById(id);
+    }
 
     /**
      * 获取 AppVO 列表
