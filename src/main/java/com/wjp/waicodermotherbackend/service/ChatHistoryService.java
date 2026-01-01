@@ -6,6 +6,7 @@ import com.mybatisflex.core.service.IService;
 import com.wjp.waicodermotherbackend.model.dto.chathistory.ChatHistoryQueryRequest;
 import com.wjp.waicodermotherbackend.model.entity.ChatHistory;
 import com.wjp.waicodermotherbackend.model.entity.User;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 
 import java.time.LocalDateTime;
 
@@ -25,6 +26,15 @@ public interface ChatHistoryService extends IService<ChatHistory> {
      * @return 是否添加成功
      */
     boolean addChatMessage(Long appId, String message, String messageType, Long userId);
+
+    /**
+     * 加载历史消息到对话中
+     * @param appId 应用Id
+     * @param chatMemory 会话内存
+     * @param maxCount 最大消息数量
+     * @return 加载成功的消息数量
+     */
+    int loadChatHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxCount);
 
     /**
      * 根据应用Id删除对话消息

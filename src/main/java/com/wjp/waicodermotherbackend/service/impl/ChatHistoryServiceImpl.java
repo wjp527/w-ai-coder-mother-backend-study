@@ -1,11 +1,10 @@
 package com.wjp.waicodermotherbackend.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
-import com.wjp.waicodermotherbackend.common.BaseResponse;
-import com.wjp.waicodermotherbackend.common.ResultUtils;
 import com.wjp.waicodermotherbackend.constant.UserConstant;
 import com.wjp.waicodermotherbackend.exception.ErrorCode;
 import com.wjp.waicodermotherbackend.exception.ThrowUtils;
@@ -18,15 +17,16 @@ import com.wjp.waicodermotherbackend.model.enums.ChatHistoryMessageTypeEnum;
 import com.wjp.waicodermotherbackend.service.AppService;
 import com.wjp.waicodermotherbackend.service.ChatHistoryService;
 import com.wjp.waicodermotherbackend.service.UserService;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 对话历史 服务层实现。
@@ -34,6 +34,7 @@ import java.time.LocalDateTime;
  * @author <a href="https://github.com/wjp527">π</a>
  */
 @Service
+@Slf4j
 public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatHistory>  implements ChatHistoryService{
 
     @Resource
@@ -69,6 +70,62 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
                 .userId(userId)
                 .build();
         return this.save(chatHistory);
+    }
+
+    /**
+     * 加载历史消息到对话中
+     * @param appId 应用Id
+     * @param chatMemory 会话内存
+     * @param maxCount 最大消息数量
+     * @return 加载成功的消息数量
+     */
+    @Override
+    public int loadChatHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxCount) {
+        try {
+            // 参数校验
+            if((appId < 0 || appId == null) && maxCount < 0 && chatMemory == null) {
+                return 0;
+            }
+            // 整合查询条件
+            QueryWrapper queryWrapper = QueryWrapper.create()
+                    .eq(ChatHistory::getAppId, appId)
+                    .orderBy(ChatHistory::getCreateTime, false)
+                    .limit(1, maxCount);
+
+            // 找到对应app最近的历史记录(最新的数据在前面)
+            List<ChatHistory> historyList = this.list(queryWrapper);
+
+            if(CollUtil.isEmpty(historyList)) {
+                return 0;
+            }
+
+            // 这里需要把数据翻转
+            historyList = CollUtil.reverse(historyList);
+
+            // 按照时间顺序添加到记忆中
+            int loadedCount = 0;
+
+            // 先清理历史缓存，防止重新加载，导致数据重复
+            chatMemory.clear();
+            // 加载到内存中
+            for (ChatHistory chatHistory : historyList) {
+                // 加载用户消息
+                if(ChatHistoryMessageTypeEnum.USER.getValue().equals(chatHistory.getMessageType())) {
+                    chatMemory.add(UserMessage.from(chatHistory.getMessage()));
+                }
+                // 加载AI消息
+                if(ChatHistoryMessageTypeEnum.AI.getValue().equals(chatHistory.getMessageType())) {
+                    chatMemory.add(AiMessage.from(chatHistory.getMessage()));
+                }
+                loadedCount++;
+            }
+            log.info("成功为 appId: {} 加载 {} 条历史对话", appId, loadedCount);
+
+            return loadedCount;
+        } catch(Exception e) {
+            log.error("加载历史记录失败, appId: {}, error: {}", appId, e.getMessage(), e);
+            return 0;
+        }
     }
 
     /**

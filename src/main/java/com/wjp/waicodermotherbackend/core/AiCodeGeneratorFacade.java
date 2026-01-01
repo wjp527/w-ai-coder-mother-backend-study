@@ -2,6 +2,7 @@ package com.wjp.waicodermotherbackend.core;
 
 import cn.hutool.core.util.StrUtil;
 import com.wjp.waicodermotherbackend.ai.AiCodeGeneratorService;
+import com.wjp.waicodermotherbackend.ai.AiCodeGeneratorServiceFactory;
 import com.wjp.waicodermotherbackend.ai.model.HtmlCodeResult;
 import com.wjp.waicodermotherbackend.ai.model.MultiFileCodeResult;
 import com.wjp.waicodermotherbackend.core.parser.CodeParserExecutor;
@@ -24,10 +25,13 @@ import java.io.File;
 public class AiCodeGeneratorFacade {
 
     /**
-     *  AI 代码生成服务
+     *  AI 代码生成服务 [AI Service都是固定的]
      */
+//    @Resource
+//    private AiCodeGeneratorService aiCodeGeneratorService;
+
     @Resource
-    private AiCodeGeneratorService aiCodeGeneratorService;
+    private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
 
     // region 单/多文件保存
     /**
@@ -43,6 +47,9 @@ public class AiCodeGeneratorFacade {
         if(codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "代码生成类型不能为空");
         }
+
+        // 根据 appId 获取对应的 AI 代码生成服务
+        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
 
         return switch(codeGenTypeEnum) {
             case HTML -> {
@@ -81,6 +88,9 @@ public class AiCodeGeneratorFacade {
         if(codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "代码生成类型不能为空");
         }
+
+        // 根据 appId 获取对应的 AI 代码生成服务
+        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
 
         return switch(codeGenTypeEnum) {
             case HTML -> {
