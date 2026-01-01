@@ -20,7 +20,10 @@ import com.wjp.waicodermotherbackend.model.enums.CodeGenTypeEnum;
 import com.wjp.waicodermotherbackend.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import com.wjp.waicodermotherbackend.model.entity.App;
@@ -29,6 +32,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.File;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -366,6 +372,44 @@ public class AppController {
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
         // 获取封装类
         return ResultUtils.success(appService.getAppVO(app));
+    }
+
+    /**
+     * 导出应用代码为Markdown文件
+     *
+     * @param appId   应用 ID
+     * @param request 请求对象
+     * @return 文件下载响应
+     */
+    @GetMapping("/export/code/{appId}")
+    public ResponseEntity<org.springframework.core.io.Resource> exportAppCodeToMd(@PathVariable Long appId, HttpServletRequest request) {
+        // 参数校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
+        // 获取当前登录用户
+        User loginUser = userService.getLoginUser(request);
+        // 调用服务导出代码
+        String filePath = appService.exportAppCodeToMd(appId, loginUser);
+        // 创建文件资源
+        File file = new File(filePath);
+        ThrowUtils.throwIf(!file.exists(), ErrorCode.SYSTEM_ERROR, "导出文件不存在");
+        org.springframework.core.io.Resource resource = new FileSystemResource(file);
+        // 获取文件名
+        String fileName = file.getName();
+        // 设置响应头，使用RFC 5987标准编码中文文件名
+        HttpHeaders headers = new HttpHeaders();
+        // 对文件名进行URL编码，以支持中文
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
+                .replace("+", "%20"); // 将+替换为%20，因为+在URL编码中表示空格
+        // 使用RFC 5987格式：filename用于兼容旧浏览器，filename*用于支持UTF-8编码
+        String contentDisposition = String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s", 
+                fileName.replaceAll("[^\\x00-\\x7F]", "_"), // ASCII备用名称，非ASCII字符替换为下划线
+                encodedFileName);
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, contentDisposition);
+        headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
+        // 返回文件下载响应
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(resource);
     }
 
 

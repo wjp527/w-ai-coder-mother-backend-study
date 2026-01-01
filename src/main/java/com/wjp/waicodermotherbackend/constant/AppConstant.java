@@ -27,4 +27,9 @@ public interface AppConstant {
      */
     String CODE_DEPLOY_HOST = "http://localhost";
 
+    /**
+     * 应用代码导出目录
+     */
+    String CODE_EXPORT_ROOT_DIR = System.getProperty("user.dir") + "/tmp/code_export";
+
 }

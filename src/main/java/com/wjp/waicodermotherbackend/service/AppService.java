@@ -57,6 +57,13 @@ public interface AppService extends IService<App> {
      */
     AppVO getAppVO(App app);
 
+    /**
+     * 导出应用代码为Markdown文件
+     * @param appId 应用ID
+     * @param loginUser 登录用户
+     * @return 文件路径
+     */
+    String exportAppCodeToMd(Long appId, User loginUser);
 
 
 }

@@ -10,6 +10,7 @@ import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.wjp.waicodermotherbackend.ai.AiCodeGeneratorService;
 import com.wjp.waicodermotherbackend.ai.AiCodeGeneratorServiceFactory;
 import com.wjp.waicodermotherbackend.constant.AppConstant;
+import com.wjp.waicodermotherbackend.constant.UserConstant;
 import com.wjp.waicodermotherbackend.core.AiCodeGeneratorFacade;
 import com.wjp.waicodermotherbackend.exception.BusinessException;
 import com.wjp.waicodermotherbackend.exception.ErrorCode;
@@ -32,8 +33,11 @@ import reactor.core.publisher.Flux;
 
 import java.io.File;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -215,6 +219,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         return super.removeById(id);
     }
 
+
     /**
      * 获取 AppVO 列表
      * @param appList
@@ -293,6 +298,171 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
             appVO.setUser(userVO);
         }
         return appVO;
+    }
+
+    /**
+     * 导出应用代码为Markdown文件
+     * @param appId 应用ID
+     * @param loginUser 登录用户
+     * @return 文件路径
+     */
+    @Override
+    public String exportAppCodeToMd(Long appId, User loginUser) {
+        // 1. 参数校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID不能为空");
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR);
+
+        // 2. 查询应用信息
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+
+        // 3. 权限验证：只有应用创建者或管理员可以导出
+        boolean isAdmin = UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole());
+        boolean isCreator = app.getUserId().equals(loginUser.getId());
+        ThrowUtils.throwIf(!isAdmin && !isCreator, ErrorCode.NO_AUTH_ERROR, "无权导出该应用的代码");
+
+        // 4. 获取应用名称，处理文件名
+        String appName = app.getAppName();
+        if (StrUtil.isBlank(appName)) {
+            appName = "app_" + appId;
+        }
+        String fileName = sanitizeFileName(appName) + ".md";
+
+        // 5. 获取应用的代码生成类型
+        String codeGenType = app.getCodeGenType();
+        CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(codeGenType);
+        ThrowUtils.throwIf(codeGenTypeEnum == null, ErrorCode.SYSTEM_ERROR, "应用代码生成类型错误");
+
+        // 6. 根据codeGenType动态查询ChatHistory：查找包含相应代码块的最新记录
+        com.wjp.waicodermotherbackend.model.entity.ChatHistory chatHistory = findLatestChatHistoryWithCodeBlocks(appId, codeGenTypeEnum);
+        ThrowUtils.throwIf(chatHistory == null, ErrorCode.NOT_FOUND_ERROR, "未找到包含代码块的应用AI回复记录");
+
+        String message = chatHistory.getMessage();
+        ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.SYSTEM_ERROR, "AI回复消息为空");
+
+        // 7. 提取代码块
+        Map<String, String> codeBlocks = extractCodeBlocks(message);
+        ThrowUtils.throwIf(codeBlocks.isEmpty(), ErrorCode.SYSTEM_ERROR, "未找到代码块（html、css、javascript）");
+
+        // 8. 构建Markdown内容
+        String markdownContent = buildMarkdownContent(codeBlocks);
+
+        // 9. 保存文件到磁盘
+        String exportDir = AppConstant.CODE_EXPORT_ROOT_DIR;
+        FileUtil.mkdir(exportDir);
+        String filePath = exportDir + File.separator + fileName;
+        FileUtil.writeString(markdownContent, filePath, StandardCharsets.UTF_8);
+
+        log.info("导出应用代码成功: appId={}, fileName={}, filePath={}", appId, fileName, filePath);
+        return filePath;
+    }
+
+    /**
+     * 根据codeGenType查找包含相应代码块的最新ChatHistory记录
+     * @param appId 应用ID
+     * @param codeGenTypeEnum 代码生成类型枚举
+     * @return ChatHistory记录，如果未找到则返回null
+     */
+    private com.wjp.waicodermotherbackend.model.entity.ChatHistory findLatestChatHistoryWithCodeBlocks(
+            Long appId, CodeGenTypeEnum codeGenTypeEnum) {
+        // 查询所有AI消息，按时间降序排序
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .eq("appId", appId)
+                .eq("messageType", ChatHistoryMessageTypeEnum.AI.getValue())
+                .orderBy("createTime", false);
+        // 限制查询数量，避免查询过多数据（最多查询100条）
+        queryWrapper.limit(100);
+        List<com.wjp.waicodermotherbackend.model.entity.ChatHistory> chatHistoryList = chatHistoryService.list(queryWrapper);
+        
+        if (CollUtil.isEmpty(chatHistoryList)) {
+            return null;
+        }
+
+        // 根据codeGenType类型查找包含相应代码块的记录
+        for (com.wjp.waicodermotherbackend.model.entity.ChatHistory chatHistory : chatHistoryList) {
+            String message = chatHistory.getMessage();
+            if (StrUtil.isBlank(message)) {
+                continue;
+            }
+
+            // 检查是否包含所需的代码块
+            boolean hasRequiredCodeBlocks = false;
+            if (codeGenTypeEnum == CodeGenTypeEnum.HTML) {
+                // HTML模式：只需要包含```html```代码块
+                hasRequiredCodeBlocks = message.contains("```html") || message.contains("```HTML");
+            } else if (codeGenTypeEnum == CodeGenTypeEnum.MULTI_FILE) {
+                // MULTI_FILE模式：需要同时包含```html```、```css```、```javascript```代码块
+                boolean hasHtml = message.contains("```html") || message.contains("```HTML");
+                boolean hasCss = message.contains("```css") || message.contains("```CSS");
+                boolean hasJs = message.contains("```javascript") || message.contains("```JavaScript") 
+                        || message.contains("```js") || message.contains("```JS");
+                hasRequiredCodeBlocks = hasHtml && hasCss && hasJs;
+            }
+
+            if (hasRequiredCodeBlocks) {
+                return chatHistory;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 从消息中提取代码块
+     * @param message 消息内容
+     * @return 代码块Map，key为语言类型（html/css/javascript），value为代码内容
+     */
+    private Map<String, String> extractCodeBlocks(String message) {
+        Map<String, String> codeBlocks = new LinkedHashMap<>();
+        // 正则表达式：匹配 ```html、```css、```javascript 代码块
+        // 模式：```(html|css|javascript)\s*\n([\s\S]*?)```
+        // 支持```后可能有空白字符，使用[\s\S]匹配包括换行在内的所有字符
+        Pattern pattern = Pattern.compile("```(html|css|javascript)\\s*\\n([\\s\\S]*?)```", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(message);
+
+        while (matcher.find()) {
+            String language = matcher.group(1).toLowerCase();
+            String code = matcher.group(2);
+            // 如果同一个语言有多个代码块，保留最后一个
+            codeBlocks.put(language, code);
+        }
+
+        return codeBlocks;
+    }
+
+    /**
+     * 构建Markdown内容
+     * @param codeBlocks 代码块Map
+     * @return Markdown格式的字符串
+     */
+    private String buildMarkdownContent(Map<String, String> codeBlocks) {
+        StringBuilder sb = new StringBuilder();
+        
+        // 按照html、css、javascript的顺序输出
+        String[] languages = {"html", "css", "javascript"};
+        for (String lang : languages) {
+            if (codeBlocks.containsKey(lang)) {
+                sb.append("## ").append(lang.toUpperCase()).append("\n\n");
+                sb.append("```").append(lang).append("\n");
+                sb.append(codeBlocks.get(lang));
+                sb.append("\n```\n\n");
+            }
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * 清理文件名，移除文件系统不支持的字符
+     * @param fileName 原始文件名
+     * @return 清理后的文件名
+     */
+    private String sanitizeFileName(String fileName) {
+        if (StrUtil.isBlank(fileName)) {
+            return "export";
+        }
+        // 移除Windows和Linux文件系统不支持的字符：/ \ : * ? " < > |
+        return fileName.replaceAll("[\\\\/:*?\"<>|]", "_");
     }
 
 
