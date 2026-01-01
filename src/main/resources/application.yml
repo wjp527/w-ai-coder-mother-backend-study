@@ -16,6 +16,13 @@ spring:
       password:
       # 代表 redis key的过期时间
       ttl: 3600
+
+  # session 配置 【后端配置】
+  session:
+    # 保存到 redis中
+    store-type: redis
+    # session 30 天过期
+    timeout: 2592000
   # 运行环境
   profiles:
     active: local
@@ -23,6 +30,11 @@ server:
   port: 8123
   servlet:
     context-path: /api
+    # cookie 30 天过期 【前端Cookie配置】
+    session:
+      cookie:
+        max-age: 2592000
+
 # springdoc-openapi项目配置
 springdoc:
   group-configs:

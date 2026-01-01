@@ -68,7 +68,11 @@
             <artifactId>caffeine</artifactId>
         </dependency>
 
-
+        <!-- Spring Session + Redis 分布式Session -->
+        <dependency>
+            <groupId>org.springframework.session</groupId>
+            <artifactId>spring-session-data-redis</artifactId>
+        </dependency>
 
         <!-- HuTool: https://doc.hutool.cn/pages/index/#%F0%9F%8D%8Amaven -->
         <dependency>
