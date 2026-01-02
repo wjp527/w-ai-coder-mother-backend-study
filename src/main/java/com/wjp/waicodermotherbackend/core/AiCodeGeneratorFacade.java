@@ -1,15 +1,22 @@
 package com.wjp.waicodermotherbackend.core;
 
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import com.wjp.waicodermotherbackend.ai.AiCodeGeneratorService;
 import com.wjp.waicodermotherbackend.ai.AiCodeGeneratorServiceFactory;
 import com.wjp.waicodermotherbackend.ai.model.HtmlCodeResult;
 import com.wjp.waicodermotherbackend.ai.model.MultiFileCodeResult;
+import com.wjp.waicodermotherbackend.ai.model.message.AIResponseMessage;
+import com.wjp.waicodermotherbackend.ai.model.message.ToolExecutedMessage;
+import com.wjp.waicodermotherbackend.ai.model.message.ToolRequestMessage;
 import com.wjp.waicodermotherbackend.core.parser.CodeParserExecutor;
 import com.wjp.waicodermotherbackend.core.saver.CodeFileSaverExecutor;
 import com.wjp.waicodermotherbackend.exception.BusinessException;
 import com.wjp.waicodermotherbackend.exception.ErrorCode;
 import com.wjp.waicodermotherbackend.model.enums.CodeGenTypeEnum;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.service.TokenStream;
+import dev.langchain4j.service.tool.ToolExecution;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -107,16 +114,69 @@ public class AiCodeGeneratorFacade {
             }
             case VUE_PROJECT -> {
                 // 1、调用Ai获取流式返回的数据
-                Flux<String> result = aiCodeGeneratorService.generateVueProjectCodeStream(appId, userMessage);
+                TokenStream tokenStream = aiCodeGeneratorService.generateVueProjectCodeStream(appId, userMessage);
                 // 2、处理代码流
                 // 注意：VUE_PROJECT 类型在流式生成过程中已经通过 FileWriteTool 实时写入文件，所以不需要在流式完成后再次保存
-                yield processCodeStream(result, CodeGenTypeEnum.VUE_PROJECT, appId, version);
+                yield processTokenStream(tokenStream);
             }
             default -> {
                 String errStr = "不支持的代码生成类型:" + codeGenTypeEnum.getValue();
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, errStr);
             }
         };
+    }
+
+    /**
+     * 将 TokenStream 转换为 Flux<String>，并传递工具调用信息
+     * @param tokenStream TokenStream 对象
+     * @return Flux<String>
+     *
+     * description:
+     *  1、AI 文本响应片段 -> 回调：onPartialResponse，参数: AIResponseMessage
+     *  2、工具调用请求 -> 回调: onPartialToolExecutionRequest，参数：ToolRequestMessage
+     *  3、工具执行完毕结果 -> 回调：onToolExecuted，参数：ToolExecutedMessage
+     */
+    private Flux<String> processTokenStream(TokenStream tokenStream) {
+        // create: 手动创建响应式流
+        // sink: 向订阅者发送数据
+        return Flux.create(sink -> {
+            // onPartialResponse: 当AI返回部分文本时触发
+            // partialResponse: Ai返回的部分文本
+            tokenStream.onPartialResponse((String partialResponse) -> {
+                // 创建 AI响应消息对象
+                AIResponseMessage aiResponseMessage = new AIResponseMessage(partialResponse);
+                // 发送JSON到流
+                sink.next(JSONUtil.toJsonStr(aiResponseMessage));
+            })
+            // onPartialToolExecutionRequest: 注册工具执行请求回调
+            // index: 请求索引
+            // toolExecutionRequest: 工具执行请求对象
+            .onPartialToolExecutionRequest((index, toolExecutionRequest) -> {
+                // 创建 工具请求消息对象
+                ToolRequestMessage toolRequestMessage = new ToolRequestMessage(toolExecutionRequest);
+                // 发送JSON到流
+                sink.next(JSONUtil.toJsonStr(toolRequestMessage));
+            })
+            // onToolExecuted: 注册工具执行完成回调
+            // toolExecution: 包含工具执行请求和结果
+            .onToolExecuted((ToolExecution toolExecution) -> {
+                // 创建 工具执行结果消息对象
+                ToolExecutedMessage toolExecutedMessage = new ToolExecutedMessage(toolExecution);
+                sink.next(JSONUtil.toJsonStr(toolExecutedMessage));
+            })
+            // onCompleteResponse: 注册完整响应回调
+            // chatResponse: 完整的聊天响应对象
+            .onCompleteResponse((ChatResponse chatResponse) -> {
+                // 完成流
+                sink.complete();
+            })
+            // onError: 注册 错误回调
+            .onError((Throwable error) -> {
+                error.printStackTrace();
+                sink.error(error);
+            })
+            .start();
+        });
     }
 
     /**

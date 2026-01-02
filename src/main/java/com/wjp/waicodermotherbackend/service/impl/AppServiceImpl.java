@@ -12,6 +12,7 @@ import com.wjp.waicodermotherbackend.ai.AiCodeGeneratorServiceFactory;
 import com.wjp.waicodermotherbackend.constant.AppConstant;
 import com.wjp.waicodermotherbackend.constant.UserConstant;
 import com.wjp.waicodermotherbackend.core.AiCodeGeneratorFacade;
+import com.wjp.waicodermotherbackend.core.handler.StreamHandlerExecutor;
 import com.wjp.waicodermotherbackend.exception.BusinessException;
 import com.wjp.waicodermotherbackend.exception.ErrorCode;
 import com.wjp.waicodermotherbackend.exception.ThrowUtils;
@@ -60,6 +61,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
      */
     @Resource
     private AiCodeGeneratorFacade aiCodeGeneratorFacade;
+
+    /**
+     * 流式处理器执行器
+     */
+    @Resource
+    private StreamHandlerExecutor streamHandlerExecutor;
 
 
     /**
@@ -113,21 +120,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
 
         // 7、收集AI响应内容并在完成后记录到对话历史
         StringBuilder aiResponseBuilder = new StringBuilder();
-        return contentFlux.map(chunk -> {
-            // 收集AI响应
-            aiResponseBuilder.append(chunk);
-            return chunk;
-        }).doOnComplete(() -> {
-            // 流式响应完成后，将AI消息填充到对话历史
-            String aiResponse = aiResponseBuilder.toString();
-            if(StrUtil.isNotBlank(aiResponse)) {
-                chatHistoryService.addChatMessage(appId, aiResponse, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
-            }
-        }).doOnError(error -> {
-            // 如果 AI 回复失败，也需要保存到回话历史
-            String errorMessage =  "AI 回复失败:" + error.getMessage();
-            chatHistoryService.addChatMessage(appId, errorMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
-        });
+        // 8、收集AI 响应内容并在完成后记录到对话历史中
+        return streamHandlerExecutor.doExecute(contentFlux, chatHistoryService, appId, loginUser, codeGenTypeEnum);
     }
 
     /**

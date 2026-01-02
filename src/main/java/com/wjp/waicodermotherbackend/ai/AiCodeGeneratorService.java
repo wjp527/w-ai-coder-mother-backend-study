@@ -4,6 +4,7 @@ import com.wjp.waicodermotherbackend.ai.model.HtmlCodeResult;
 import com.wjp.waicodermotherbackend.ai.model.MultiFileCodeResult;
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.UserMessage;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
@@ -56,11 +57,11 @@ public interface AiCodeGeneratorService {
     /**
      * 生成 Vue项目代码 (流式)
      * @param appId 为了工具调用的时候可以获取到appId，所以就需要在调用AI的时候传递
-     * @param userMessage
-     * @return
+     * @param userMessage 用户的提示词
+     * @return AI 生成的代码
      */
     @SystemMessage(fromResource = "prompt/codegen-vue-project-system-prompt.txt")
-    Flux<String> generateVueProjectCodeStream(@MemoryId long appId, @UserMessage String userMessage);
+    TokenStream generateVueProjectCodeStream(@MemoryId long appId, @UserMessage String userMessage);
 
     // endregion
 
