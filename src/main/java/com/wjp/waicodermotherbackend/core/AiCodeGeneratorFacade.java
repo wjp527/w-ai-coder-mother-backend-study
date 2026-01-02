@@ -49,7 +49,7 @@ public class AiCodeGeneratorFacade {
         }
 
         // 根据 appId 获取对应的 AI 代码生成服务
-        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
+        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);
 
         return switch(codeGenTypeEnum) {
             case HTML -> {
@@ -90,7 +90,7 @@ public class AiCodeGeneratorFacade {
         }
 
         // 根据 appId 获取对应的 AI 代码生成服务
-        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
+        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);
 
         return switch(codeGenTypeEnum) {
             case HTML -> {
@@ -104,6 +104,13 @@ public class AiCodeGeneratorFacade {
                 Flux<String> result = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
                 // 2、处理代码流
                 yield processCodeStream(result, CodeGenTypeEnum.MULTI_FILE, appId, version);
+            }
+            case VUE_PROJECT -> {
+                // 1、调用Ai获取流式返回的数据
+                Flux<String> result = aiCodeGeneratorService.generateVueProjectCodeStream(appId, userMessage);
+                // 2、处理代码流
+                // 注意：VUE_PROJECT 类型在流式生成过程中已经通过 FileWriteTool 实时写入文件，所以不需要在流式完成后再次保存
+                yield processCodeStream(result, CodeGenTypeEnum.VUE_PROJECT, appId, version);
             }
             default -> {
                 String errStr = "不支持的代码生成类型:" + codeGenTypeEnum.getValue();
@@ -133,6 +140,13 @@ public class AiCodeGeneratorFacade {
                             appId, version, codeBuilder.length());
                 })
                 .doOnComplete(() -> {
+                    // VUE_PROJECT 类型在流式生成过程中已经通过 FileWriteTool 实时写入文件，不需要再次保存
+                    if (codeGenTypeEnum == CodeGenTypeEnum.VUE_PROJECT) {
+                        log.info("【代码流完成】appId: {}, version: {}, VUE_PROJECT 类型，文件已通过工具调用实时写入，无需再次保存", 
+                                appId, version);
+                        return;
+                    }
+                    
                     long startTime = System.currentTimeMillis();
                     log.info("【代码流完成】appId: {}, version: {}, 开始保存代码，已收集代码长度: {}", 
                             appId, version, codeBuilder.length());

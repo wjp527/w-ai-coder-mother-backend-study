@@ -2,10 +2,14 @@ package com.wjp.waicodermotherbackend.ai;
 
 import com.wjp.waicodermotherbackend.ai.model.HtmlCodeResult;
 import com.wjp.waicodermotherbackend.ai.model.MultiFileCodeResult;
+import com.wjp.waicodermotherbackend.model.enums.CodeGenTypeEnum;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import reactor.core.publisher.Flux;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -38,5 +42,7 @@ class AiCodeGeneratorServiceTest {
         result = aiCodeGeneratorService.generateHtmlCode("不要生成网站，告诉我你刚刚做了什么？");
         Assertions.assertNotNull(result);
     }
+
+
 
 }
