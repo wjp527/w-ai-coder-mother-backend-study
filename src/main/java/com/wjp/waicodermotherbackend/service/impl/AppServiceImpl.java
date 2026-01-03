@@ -7,8 +7,6 @@ import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
-import com.wjp.waicodermotherbackend.ai.AiCodeGeneratorService;
-import com.wjp.waicodermotherbackend.ai.AiCodeGeneratorServiceFactory;
 import com.wjp.waicodermotherbackend.constant.AppConstant;
 import com.wjp.waicodermotherbackend.constant.UserConstant;
 import com.wjp.waicodermotherbackend.core.AiCodeGeneratorFacade;
@@ -27,6 +25,7 @@ import com.wjp.waicodermotherbackend.model.enums.CodeGenTypeEnum;
 import com.wjp.waicodermotherbackend.model.vo.UserVO;
 import com.wjp.waicodermotherbackend.service.AppService;
 import com.wjp.waicodermotherbackend.service.ChatHistoryService;
+import com.wjp.waicodermotherbackend.service.ScreenshotService;
 import com.wjp.waicodermotherbackend.service.UserService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -71,6 +70,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
 
     @Resource
     private VueProjectBuilder vueProjectBuilder;
+
+    @Resource
+    private ScreenshotService screenshotService;
 
 
     /**
@@ -206,7 +208,32 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         boolean updateResult = this.updateById(updateApp);
         ThrowUtils.throwIf(!updateResult, ErrorCode.SYSTEM_ERROR, "更新应用失败");
         // 11、返回可访问的URL
-        return AppConstant.CODE_DEPLOY_HOST + File.separator + deployKey + File.separator + "V" + version;
+        String appDeployUrl = AppConstant.CODE_DEPLOY_HOST + File.separator + deployKey + File.separator + "V" + version;
+        // 12、异步生成截图并更新应用封面
+        generateAppScreenshotAsync(appId, appDeployUrl);
+        return appDeployUrl;
+
+    }
+
+    /**
+     * 异步生成应用截图并更新封面
+     * @param appId 应用Id
+     * @param appDeployUrl 应用部署URL
+     */
+    @Override
+    public void generateAppScreenshotAsync(Long appId, String appDeployUrl) {
+        // 使用虚拟现成异步执行
+        Thread.startVirtualThread(() -> {
+            // 1、调用截图服务生成截图并上传
+            String screenshotUrl = screenshotService.generateAndUploadScreenshot(appDeployUrl);
+            // 2、更新数据表
+            App updateApp = new App();
+            updateApp.setId(appId);
+            updateApp.setCover(screenshotUrl);
+            boolean result = this.updateById(updateApp);
+            ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "更新应用封面失败");
+        });
+
     }
 
     /**

@@ -74,6 +74,26 @@
             <artifactId>spring-session-data-redis</artifactId>
         </dependency>
 
+        <!-- Selenium 网页截图依赖 -->
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-java</artifactId>
+            <version>4.33.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.bonigarcia</groupId>
+            <artifactId>webdrivermanager</artifactId>
+            <version>6.1.0</version>
+        </dependency>
+
+        <!-- 腾讯云COS: https://cloud.tencent.com/document/product/436/6224 -->
+        <dependency>
+            <groupId>com.qcloud</groupId>
+            <artifactId>cos_api</artifactId>
+            <version>5.6.227</version>
+        </dependency>
+
+
         <!-- HuTool: https://doc.hutool.cn/pages/index/#%F0%9F%8D%8Amaven -->
         <dependency>
             <groupId>cn.hutool</groupId>
