@@ -56,8 +56,10 @@ langchain4j:
       # 默认最大token数
       max-retries: 8192
       # 严格保证结构化输出有效
-      strict-json-schema: true
-      response-format: json_object
+      # 如果需要返回的是枚举类型，这时候再使用结构化输出就会有问题
+      # error: 400 Bad Request: "{"error":{"message":"Prompt must contain the word 'json' in some form to use 'response_format' of type 'json_object'.","type":"invalid_request_error","param":null,"code":"invalid_request_error"}}"
+#      strict-json-schema: true
+#      response-format: json_object
       log-requests: true
       log-responses: true
     # SSE流式输出

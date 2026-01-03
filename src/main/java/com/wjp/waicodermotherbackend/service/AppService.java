@@ -2,10 +2,12 @@ package com.wjp.waicodermotherbackend.service;
 
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
+import com.wjp.waicodermotherbackend.model.dto.app.AppAddRequest;
 import com.wjp.waicodermotherbackend.model.dto.app.AppQueryRequest;
 import com.wjp.waicodermotherbackend.model.dto.app.AppVO;
 import com.wjp.waicodermotherbackend.model.entity.App;
 import com.wjp.waicodermotherbackend.model.entity.User;
+import jakarta.servlet.http.HttpServletRequest;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
@@ -42,6 +44,15 @@ public interface AppService extends IService<App> {
      * @param appDeployUrl 应用部署URL
      */
     void generateAppScreenshotAsync(Long appId, String appDeployUrl);
+
+
+    /**
+     * 创建应用
+     * @param appAddRequest 应用创建请求
+     * @param loginUser 登录用户
+     * @return 应用Id
+     */
+    Long createApp(AppAddRequest appAddRequest, User loginUser );
 
     /**
      * 获取 AppVO 列表
