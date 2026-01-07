@@ -2,7 +2,7 @@ package com.wjp.waicodermotherbackend.ai;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.wjp.waicodermotherbackend.ai.tools.FileWriteTool;
+import com.wjp.waicodermotherbackend.ai.tools.*;
 import com.wjp.waicodermotherbackend.config.ReasoningStreamingChatModelConfig;
 import com.wjp.waicodermotherbackend.config.RedisChatMemoryStoreConfig;
 import com.wjp.waicodermotherbackend.exception.BusinessException;
@@ -49,6 +49,12 @@ public class AiCodeGeneratorServiceFactory {
 
     @Resource
     private ChatHistoryService chatHistoryService;
+
+    /**
+     * 工具实例
+     */
+    @Resource
+    private ToolManager toolManager;
 
 
     /**
@@ -119,7 +125,7 @@ public class AiCodeGeneratorServiceFactory {
                    // 这里生成Vue项目的时候会调用工具，工具调用了memoryId，所以这里必须指定 chatMemoryProvider
                    .chatMemoryProvider(memoryId -> chatMemory) // 对话记忆
                    // 绑定工具
-                   .tools(new FileWriteTool())
+                   .tools(toolManager.getAllTools())
                    // 处理工具调用幻觉问题，出现幻觉，进入错误处理
                    .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                            toolExecutionRequest, "Error: there is no tool called" + toolExecutionRequest.name()
