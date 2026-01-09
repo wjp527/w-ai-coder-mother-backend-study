@@ -25,10 +25,7 @@ import com.wjp.waicodermotherbackend.model.entity.User;
 import com.wjp.waicodermotherbackend.model.enums.ChatHistoryMessageTypeEnum;
 import com.wjp.waicodermotherbackend.model.enums.CodeGenTypeEnum;
 import com.wjp.waicodermotherbackend.model.vo.UserVO;
-import com.wjp.waicodermotherbackend.service.AppService;
-import com.wjp.waicodermotherbackend.service.ChatHistoryService;
-import com.wjp.waicodermotherbackend.service.ScreenshotService;
-import com.wjp.waicodermotherbackend.service.UserService;
+import com.wjp.waicodermotherbackend.service.*;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -80,6 +77,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
 
+    @Resource
+    private ChatHistoryOriginalService chatHistoryOriginalService;
+
 
     /**
      * 通过聊天生成应用代码
@@ -126,6 +126,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
         // 5. 将用户的消息保存到对话记忆里
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
+        chatHistoryOriginalService.addOriginalChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
 
         // 6、调用 AI服务生成代码
         // 这里不使用 app 里面的提示词，是因为这个方法不仅仅用于创建应用，后面还需要修改，多轮对话，反不能一直用最一开始的提示词吧
@@ -134,7 +135,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 7、收集AI响应内容并在完成后记录到对话历史
         StringBuilder aiResponseBuilder = new StringBuilder();
         // 8、收集AI 响应内容并在完成后记录到对话历史中
-        return streamHandlerExecutor.doExecute(contentFlux, chatHistoryService, appId, loginUser, codeGenTypeEnum);
+        return streamHandlerExecutor.doExecute(contentFlux, chatHistoryService,chatHistoryOriginalService, appId, loginUser, codeGenTypeEnum);
     }
 
     /**
@@ -291,6 +292,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 先删除关联的对话历史
         try {
             chatHistoryService.deleteByAppId(appId);
+            chatHistoryOriginalService.deleteByAppId(appId);
         } catch (Exception e) {
             // 记录日志但不阻止应用删除
             log.error("删除应用关联对话历史失败: {}", e.getMessage());

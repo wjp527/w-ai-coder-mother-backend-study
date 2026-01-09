@@ -109,15 +109,48 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
             chatMemory.clear();
             // 加载到内存中
             for (ChatHistory chatHistory : historyList) {
-                // 加载用户消息
-                if(ChatHistoryMessageTypeEnum.USER.getValue().equals(chatHistory.getMessageType())) {
-                    chatMemory.add(UserMessage.from(chatHistory.getMessage()));
+                try {
+                    // 加载用户消息
+                    if(ChatHistoryMessageTypeEnum.USER.getValue().equals(chatHistory.getMessageType())) {
+                        String message = chatHistory.getMessage();
+                        // 验证消息内容不为空
+                        if (StrUtil.isNotBlank(message)) {
+                            chatMemory.add(UserMessage.from(message));
+                            loadedCount++;
+                        } else {
+                            log.warn("跳过空的用户消息, appId: {}, chatHistoryId: {}", appId, chatHistory.getId());
+                        }
+                    }
+                    // 加载AI消息
+                    if(ChatHistoryMessageTypeEnum.AI.getValue().equals(chatHistory.getMessageType())) {
+                        String message = chatHistory.getMessage();
+                        // 验证消息内容不为空
+                        if (StrUtil.isNotBlank(message)) {
+                            AiMessage aiMessage = AiMessage.from(message);
+                            // 验证 AiMessage 是否有效：必须有 content 或者有效的 tool_calls
+                            // 如果只有空的 tool_calls，则跳过这条消息
+                            // 防止：AI消息只有空的 tool_calls，导致模型无法理解之前的对话
+                            if (aiMessage.hasToolExecutionRequests() && 
+                                (aiMessage.text() == null || aiMessage.text().trim().isEmpty())) {
+                                // 检查 tool_calls 是否有效（不为空）
+                                if (aiMessage.toolExecutionRequests() == null || 
+                                    aiMessage.toolExecutionRequests().isEmpty()) {
+                                    log.warn("跳过无效的 AI 消息（只有空的 tool_calls）, appId: {}, chatHistoryId: {}", 
+                                            appId, chatHistory.getId());
+                                    continue;
+                                }
+                            }
+                            chatMemory.add(aiMessage);
+                            loadedCount++;
+                        } else {
+                            log.warn("跳过空的 AI 消息, appId: {}, chatHistoryId: {}", appId, chatHistory.getId());
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("加载历史消息失败, appId: {}, chatHistoryId: {}, error: {}", 
+                            appId, chatHistory.getId(), e.getMessage(), e);
+                    // 继续处理下一条消息，不中断整个加载过程
                 }
-                // 加载AI消息
-                if(ChatHistoryMessageTypeEnum.AI.getValue().equals(chatHistory.getMessageType())) {
-                    chatMemory.add(AiMessage.from(chatHistory.getMessage()));
-                }
-                loadedCount++;
             }
             log.info("成功为 appId: {} 加载 {} 条历史对话", appId, loadedCount);
 

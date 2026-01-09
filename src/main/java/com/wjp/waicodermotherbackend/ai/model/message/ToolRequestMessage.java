@@ -22,6 +22,11 @@ public class ToolRequestMessage extends StreamMessage {
     private String arguments;
 
     /**
+     * 存储工具调用文本的信息
+     */
+    private String text;
+
+    /**
      * 工具调用结果
      * @param toolExecutionRequest 工具调用请求
      */

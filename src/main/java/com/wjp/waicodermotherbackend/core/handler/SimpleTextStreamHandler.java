@@ -2,6 +2,7 @@ package com.wjp.waicodermotherbackend.core.handler;
 
 import com.wjp.waicodermotherbackend.model.entity.User;
 import com.wjp.waicodermotherbackend.model.enums.ChatHistoryMessageTypeEnum;
+import com.wjp.waicodermotherbackend.service.ChatHistoryOriginalService;
 import com.wjp.waicodermotherbackend.service.ChatHistoryService;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -19,12 +20,14 @@ public class SimpleTextStreamHandler {
      *
      * @param originFlux         原始流
      * @param chatHistoryService 聊天历史服务
+     * @param chatHistoryOriginalService 聊天原始服务[包含工具调用信息]
      * @param appId              应用ID
      * @param loginUser          登录用户
      * @return 处理后的流
      */
     public Flux<String> handle(Flux<String> originFlux,
                                ChatHistoryService chatHistoryService,
+                               ChatHistoryOriginalService chatHistoryOriginalService,
                                long appId, User loginUser) {
         StringBuilder aiResponseBuilder = new StringBuilder();
         return originFlux

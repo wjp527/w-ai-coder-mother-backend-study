@@ -2,6 +2,7 @@ package com.wjp.waicodermotherbackend.core.handler;
 
 import com.wjp.waicodermotherbackend.model.entity.User;
 import com.wjp.waicodermotherbackend.model.enums.CodeGenTypeEnum;
+import com.wjp.waicodermotherbackend.service.ChatHistoryOriginalService;
 import com.wjp.waicodermotherbackend.service.ChatHistoryService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -24,21 +25,21 @@ public class StreamHandlerExecutor {
     /**
      * 创建流处理器并处理聊天历史记录
      * @param originFlux 原始流
-     * @param chatHistoryService 聊天历史服务
+     * @param chatHistoryService 聊天历史服务【包含工具调用信息】
      * @param appId 应用ID
      * @param loginUser 登录用户
      * @param codeGenType 代码生成类型
      * @return 处理后的流
      */
-    public Flux<String> doExecute(Flux<String> originFlux, ChatHistoryService chatHistoryService, long appId, User loginUser, CodeGenTypeEnum codeGenType) {
+    public Flux<String> doExecute(Flux<String> originFlux, ChatHistoryService chatHistoryService, ChatHistoryOriginalService chatHistoryOriginalService, long appId, User loginUser, CodeGenTypeEnum codeGenType) {
         return switch (codeGenType) {
             // Vue 工程模式
             case VUE_PROJECT ->
-                    jsonMessageStreamHandler.handle(originFlux, chatHistoryService, appId, loginUser);
+                    jsonMessageStreamHandler.handle(originFlux, chatHistoryService,chatHistoryOriginalService, appId, loginUser);
             // 其他模式
             case HTML, MULTI_FILE ->
                     new SimpleTextStreamHandler()
-                            .handle(originFlux, chatHistoryService, appId, loginUser);
+                            .handle(originFlux, chatHistoryService,chatHistoryOriginalService, appId, loginUser);
             default -> throw new RuntimeException("不支持的代码生成类型");
         };
     }
