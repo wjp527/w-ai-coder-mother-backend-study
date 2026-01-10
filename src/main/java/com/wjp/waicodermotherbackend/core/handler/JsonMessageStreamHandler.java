@@ -83,8 +83,19 @@ public class JsonMessageStreamHandler {
                     // AI response 入库（两种情况：1、没有进行工具调用；2、工具调用结束后，AI 一般还会有一句返回）
 
                     // 流式响应完成后，添加 AI 消息到对话历史
-                    String aiResponse = chatHistoryStringBuilder.toString();
-                    chatHistoryService.addChatMessage(appId, aiResponse, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+                    String chatHistoryStr = chatHistoryStringBuilder.toString();
+                    // 保存到旧的 chat_history 表（向后兼容）
+                    chatHistoryService.addChatMessage(appId, chatHistoryStr, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+
+                    // 保存到 chat_history_original 表（完整对话历史）
+                    // 注意：aiResponseStringBuilder 在工具调用后会被清空，所以这里只保存工具调用后的 AI 响应（如果有）
+                    // 工具调用前的 AI 响应已经保存在 tool_request 的 text 字段中了
+                    // 只会保留 工具调用后的 AI 响应
+                    String aiResponseStr = aiResponseStringBuilder.toString();
+                    if(StrUtil.isNotEmpty(aiResponseStr)) {
+                        // 工具调用后的 AI 响应，需要单独保存
+                        chatHistoryOriginalService.addOriginalChatMessage(appId, aiResponseStr, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+                    }
                     // 异步构建 Vue项目
                     String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
                     vueProjectBuilder.buildProjectAsync(projectPath);
@@ -99,8 +110,14 @@ public class JsonMessageStreamHandler {
 
     /**
      * 解析并收集 TokenStream 数据
+     * @param chunk                     JSON 消息块
+     * @param chatHistoryStringBuilder  用于收集对话历史数据
+     * @param aiResponseStringBuilder   用于收集 AI 响应数据 [只会保留工具调用后的AI响应]
+     * @param originalChatHistoryList   用于收集原始对话数据
+     * @param seenToolIds               用于记录已经见过的工具ID
      */
-    private String handleJsonMessageChunk(String chunk, StringBuilder chatHistoryStringBuilder,
+    private String handleJsonMessageChunk(String chunk,
+                                          StringBuilder chatHistoryStringBuilder,
                                           StringBuilder aiResponseStringBuilder,
                                           List<ChatHistoryOriginal> originalChatHistoryList,
                                           Set<String> seenToolIds) {
@@ -171,29 +188,31 @@ public class JsonMessageStreamHandler {
         // 构造工具调用请求对象(工具调用结果的数据就是从请求中拿到的，所以直接在这里处理调用请求信息)
         String aiResponseStr = aiResponseStringBuilder.toString();
         ToolRequestMessage toolRequestMessage = new ToolRequestMessage();
-        toolRequestMessage.setId(toolRequestMessage.getId());
-        toolRequestMessage.setName(toolRequestMessage.getName());
-        toolRequestMessage.setArguments(toolRequestMessage.getArguments());
+        // 从 toolExecutedMessage 中获取工具请求的信息（id, name, arguments）
+        toolRequestMessage.setId(toolExecutedMessage.getId());
+        toolRequestMessage.setName(toolExecutedMessage.getName());
+        toolRequestMessage.setArguments(toolExecutedMessage.getArguments());
         toolRequestMessage.setText(aiResponseStr);
 
-        // 解析为 JSON todo: 那为什么这里返回值 String
+        // 解析为 JSON
         String toolRequestJsonStr = JSONUtil.toJsonStr(toolRequestMessage);
 
         // 构造 ChatHistory 存入列表
-        // 工具调用
+        // 工具调用请求
         ChatHistoryOriginal toolRequestHistory = ChatHistoryOriginal.builder()
                 .message(toolRequestJsonStr)
                 .messageType(ChatHistoryMessageTypeEnum.TOOL_EXECUTION_REQUEST.getValue())
                 .build();
         originalChatHistoryList.add(toolRequestHistory);
-        // 工具调用完毕
-        ChatHistoryOriginal.builder()
+        
+        // 工具调用结果
+        ChatHistoryOriginal toolResultHistory = ChatHistoryOriginal.builder()
                 .message(chunk)
                 .messageType(ChatHistoryMessageTypeEnum.TOOL_EXECUTION_RESULT.getValue())
                 .build();
-        originalChatHistoryList.add(toolRequestHistory);
+        originalChatHistoryList.add(toolResultHistory);
 
-        // AI 响应内容暂时结束，置空 aiResponseStringBuilder todo：不太懂
+        // AI 响应内容暂时结束，置空 aiResponseStringBuilder（因为工具调用后，AI 可能会继续响应，需要重新收集）
         aiResponseStringBuilder.setLength(0);
 
 

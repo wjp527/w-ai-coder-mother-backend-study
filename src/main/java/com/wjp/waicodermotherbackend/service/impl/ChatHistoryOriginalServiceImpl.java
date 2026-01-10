@@ -267,7 +267,6 @@ public class ChatHistoryOriginalServiceImpl extends ServiceImpl<ChatHistoryOrigi
                 case AI:
                     chatMemory.add(AiMessage.from(history.getMessage()));
                     break;
-                // todo: 这里不太懂
                 case TOOL_EXECUTION_REQUEST:
                     ToolRequestMessage toolRequestMessage = JSONUtil.toBean(history.getMessage(), ToolRequestMessage.class);
                     ToolExecutionRequest toolExecutionRequest = ToolExecutionRequest.builder()
@@ -276,19 +275,23 @@ public class ChatHistoryOriginalServiceImpl extends ServiceImpl<ChatHistoryOrigi
                             .arguments(toolRequestMessage.getArguments())
                             .build();
                     // 有些工具调用请求自带有文本，有些没有
-                    if(toolRequestMessage.getText().isEmpty()) {
+                    if(toolRequestMessage.getText() == null || toolRequestMessage.getText().isEmpty()) {
                         chatMemory.add(AiMessage.from(List.of(toolExecutionRequest)));
                     } else {
                         chatMemory.add(AiMessage.from(toolRequestMessage.getText(), List.of(toolExecutionRequest)));
                     }
                     loadCount++;
+                    break;
                 case TOOL_EXECUTION_RESULT:
                     ToolExecutedMessage toolExecutedMessage = JSONUtil.toBean(history.getMessage(), ToolExecutedMessage.class);
                     String id = toolExecutedMessage.getId();
                     String toolName = toolExecutedMessage.getName();
-                    String toolExecutionResult = toolExecutedMessage.getArguments();
+                    // 注意：ToolExecutionResultMessage.from() 需要的是工具执行结果，而不是 arguments
+                    // arguments 是工具请求的参数，result 才是工具执行的结果
+                    String toolExecutionResult = toolExecutedMessage.getResult() != null ? toolExecutedMessage.getResult() : toolExecutedMessage.getArguments();
                     chatMemory.add(ToolExecutionResultMessage.from(id, toolName, toolExecutionResult));
                     loadCount++;
+                    break;
                 default:
                     log.warn("未知的消息类型: {}", messageType);
                     break;
