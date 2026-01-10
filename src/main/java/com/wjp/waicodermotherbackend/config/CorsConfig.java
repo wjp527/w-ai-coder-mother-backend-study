@@ -18,8 +18,10 @@ public class CorsConfig implements WebMvcConfigurer {
                 .allowCredentials(true)
                 // 放行哪些域名（必须用 patterns，否则 * 会和 allowCredentials 冲突）
                 .allowedOriginPatterns("*")
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 .allowedHeaders("*")
-                .exposedHeaders("*");
+                .exposedHeaders("*")
+                // 预检请求的缓存时间（秒），减少预检请求次数
+                .maxAge(3600);
     }
 }

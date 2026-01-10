@@ -26,6 +26,15 @@ spring:
   # 运行环境
   profiles:
     active: local
+  # 文件上传配置
+  servlet:
+    multipart:
+      # 单个文件最大大小 (50MB)
+      max-file-size: 50MB
+      # 整个请求最大大小 (100MB，允许一次上传多个文件)
+      max-request-size: 100MB
+      # 文件写入磁盘的阈值，超过该大小将写入磁盘（默认10MB）
+      file-size-threshold: 10MB
 server:
   port: 8123
   servlet:
