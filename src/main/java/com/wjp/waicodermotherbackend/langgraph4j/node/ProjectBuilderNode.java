@@ -23,33 +23,27 @@ public class ProjectBuilderNode {
         return node_async(state -> {
             WorkflowContext context = WorkflowContext.getContext(state);
             log.info("执行节点: 项目构建");
-            
+
             // TODO: 实际执行项目构建逻辑
             String generatedCodeDir = context.getGeneratedCodeDir();
             CodeGenTypeEnum generationType = context.getGenerationType();
             String buildResultDir;
             // Vue项目类型：VueProjectBuilder 构建
-            if(generationType == CodeGenTypeEnum.VUE_PROJECT) {
-                try {
-                    VueProjectBuilder vueProjectBuilder = SpringContextUtil.getBean(VueProjectBuilder.class);
-                    // 执行 Vue 项目构建
-                    boolean buildSuccess = vueProjectBuilder.buildProject(generatedCodeDir);
-                    if(buildSuccess) {
-                        // 构建成功，返回 dist 目录路径
-                        buildResultDir = generatedCodeDir + File.separator + "dist";
-                        log.info("Vue项目构建成功，结果目录: {}", buildResultDir);
-                    } else {
-                        throw new BusinessException(ErrorCode.SYSTEM_ERROR, "Vue项目构建失败");
-                    }
-                } catch(Exception e) {
-                    log.error("Vue构建异常: {}", e.getMessage(), e);
-                    buildResultDir = generatedCodeDir; // 构建失败，返回源代码目录路径
+            try {
+                VueProjectBuilder vueProjectBuilder = SpringContextUtil.getBean(VueProjectBuilder.class);
+                // 执行 Vue 项目构建
+                boolean buildSuccess = vueProjectBuilder.buildProject(generatedCodeDir);
+                if (buildSuccess) {
+                    // 构建成功，返回 dist 目录路径
+                    buildResultDir = generatedCodeDir + File.separator + "dist";
+                    log.info("Vue项目构建成功，结果目录: {}", buildResultDir);
+                } else {
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "Vue项目构建失败");
                 }
-            } else {
-                // HTML 和 Multi_file 代码生成时已经保存了，直接使用生成的代码目录
-                buildResultDir = generatedCodeDir;
+            } catch (Exception e) {
+                log.error("Vue构建异常: {}", e.getMessage(), e);
+                buildResultDir = generatedCodeDir; // 构建失败，返回源代码目录路径
             }
-
             // 更新状态
             context.setCurrentStep("项目构建");
             context.setBuildResultDir(buildResultDir);

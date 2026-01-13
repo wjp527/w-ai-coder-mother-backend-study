@@ -2,9 +2,12 @@ package com.wjp.waicodermotherbackend.langgraph4j;
 
 import com.wjp.waicodermotherbackend.exception.BusinessException;
 import com.wjp.waicodermotherbackend.exception.ErrorCode;
+import com.wjp.waicodermotherbackend.langgraph4j.model.QualityResult;
 import com.wjp.waicodermotherbackend.langgraph4j.node.*;
 import com.wjp.waicodermotherbackend.langgraph4j.state.WorkflowContext;
+import com.wjp.waicodermotherbackend.model.enums.CodeGenTypeEnum;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.hc.core5.http.impl.nio.MessageState;
 import org.bsc.langgraph4j.CompiledGraph;
 import org.bsc.langgraph4j.GraphRepresentation;
 import org.bsc.langgraph4j.GraphStateException;
@@ -16,6 +19,7 @@ import java.util.Map;
 
 import static org.bsc.langgraph4j.StateGraph.END;
 import static org.bsc.langgraph4j.StateGraph.START;
+import static org.bsc.langgraph4j.action.AsyncEdgeAction.edge_async;
 
 /**
  * 代码生成工作流
@@ -34,6 +38,8 @@ public class CodeGenWorkflow {
                     .addNode("prompt_enhancer", PromptEnhancerNode.create())
                     .addNode("router", RouterNode.create())
                     .addNode("code_generator", CodeGeneratorNode.create())
+                    // 新增代码质量检测节点
+                    .addNode("code_quality_check", CodeQualityCheckNode.create())
                     .addNode("project_builder", ProjectBuilderNode.create())
 
                     // 添加边
@@ -41,7 +47,17 @@ public class CodeGenWorkflow {
                     .addEdge("image_collector", "prompt_enhancer")
                     .addEdge("prompt_enhancer", "router")
                     .addEdge("router", "code_generator")
-                    .addEdge("code_generator", "project_builder")
+                    .addEdge("code_generator", "code_quality_check")
+                    // 跳过边
+                    // 为build -> project_builder 的跳过逻辑
+                    // 为skip -> 直接跳到END
+                    .addConditionalEdges("code_quality_check",
+                            edge_async(this::routeAfterQualityCheck),
+                            Map.of(
+                                    "build", "project_builder", // 需要构建的情况
+                                    "skip_build", END,                  // 添加跳过逻辑
+                                    "error", "code_generator"           // 质检失败，重新生成
+                                    ))
                     .addEdge("project_builder", END)
 
                     // 编译工作流
@@ -83,4 +99,39 @@ public class CodeGenWorkflow {
         log.info("代码生成工作流执行完成！");
         return finalContext;
     }
+
+    /**
+     * 质检完成后，根据结果决定下一步
+     * @param state 状态
+     * @return 构建或跳过
+     */
+    private String routeAfterQualityCheck(MessagesState<String> state) {
+        WorkflowContext context = WorkflowContext.getContext(state);
+        QualityResult qualityResult = context.getQualityResult();
+        // 如果质检失败，重新生成代码
+        if (qualityResult == null || !qualityResult.getIsValid()) {
+            log.error("代码质检失败，需要重新生成代码");
+            return "error";
+        }
+        // 质检通过，使用原有的构建路由逻辑
+        log.info("代码质检通过，继续后续流程");
+        return routeBuildOrSkip(state);
+    }
+
+
+    /**
+     * 根据代码生成类型决定是否需要构建
+     * @param state 状态
+     * @return 构建或跳过
+     */
+    private String routeBuildOrSkip(MessagesState<String> state) {
+        WorkflowContext context = WorkflowContext.getContext(state);
+        CodeGenTypeEnum generationType = context.getGenerationType();
+        // HTML 和 MULTI_FILE 类型不需要构建，直接结束
+        if(generationType == CodeGenTypeEnum.HTML || generationType == CodeGenTypeEnum.MULTI_FILE) {
+            return "skip_build";
+        }
+        return "build";
+    }
+
 }

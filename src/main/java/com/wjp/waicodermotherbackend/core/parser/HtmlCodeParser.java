@@ -21,7 +21,7 @@ public class HtmlCodeParser implements CodeParser<HtmlCodeResult>{
      */
     @Override
     public HtmlCodeResult parseCode(String codeContent) {
-        HtmlCodeResult result = new HtmlCodeResult();
+         HtmlCodeResult result = new HtmlCodeResult();
         // 提取 HTML 代码
         String htmlCode = extractHtmlCode(codeContent);
         if (htmlCode != null && !htmlCode.trim().isEmpty()) {
