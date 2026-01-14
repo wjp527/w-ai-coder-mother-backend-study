@@ -8,22 +8,24 @@ import org.springframework.boot.test.context.SpringBootTest;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-class CodeGenWorkflowTest {
+class CodeGenConcurrentWorkflowTest {
+
     @Test
-    void testSimpleHtmlWorkflow() {
-        WorkflowContext result = new CodeGenWorkflow().executeWorkflow("创建一个简单的个人主页");
+    void testConcurrentWorkflow() {
+        WorkflowContext result = new CodeGenConcurrentWorkflow().executeWorkflow("创建一个技术博客网站，需要展示编程教程和系统架构");
         Assertions.assertNotNull(result);
         System.out.println("生成类型: " + result.getGenerationType());
         System.out.println("生成的代码目录: " + result.getGeneratedCodeDir());
         System.out.println("构建结果目录: " + result.getBuildResultDir());
+        System.out.println("收集的图片数量: " + (result.getImageList() != null ? result.getImageList().size() : 0));
     }
 
     @Test
-    void testCorporateWorkflow() {
-        WorkflowContext result = new CodeGenWorkflow().executeWorkflow("创建企业官网，展示公司形象和业务 介绍，一定要生成完毕，不要只生成一半！！！");
-                Assertions.assertNotNull(result);
+    void testEcommerceWorkflow() {
+        WorkflowContext result = new CodeGenConcurrentWorkflow().executeWorkflow("创建一个电子商务网站，需要商品展示、购物车和支付功能");
+        Assertions.assertNotNull(result);
         System.out.println("生成类型: " + result.getGenerationType());
         System.out.println("生成的代码目录: " + result.getGeneratedCodeDir());
-        System.out.println("构建结果目录:" + result.getBuildResultDir());
+        System.out.println("收集的图片数量: " + (result.getImageList() != null ? result.getImageList().size() : 0));
     }
 }
