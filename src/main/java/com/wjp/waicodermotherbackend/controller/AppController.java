@@ -62,11 +62,11 @@ public class AppController {
     @Resource
     private ProjectDownloadService projectDownloadService;
 
-    /**
-     * AI 路由服务
-     */
-    @Resource
-    private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
+//    /**
+//     * AI 路由服务
+//     */
+//    @Resource
+//    private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
 
     /**
      * 应用聊天生成代码（流式 SSE）

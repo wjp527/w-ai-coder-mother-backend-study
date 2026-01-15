@@ -11,6 +11,7 @@ import com.wjp.waicodermotherbackend.model.entity.ChatHistoryOriginal;
 import com.wjp.waicodermotherbackend.model.enums.CodeGenTypeEnum;
 import com.wjp.waicodermotherbackend.service.ChatHistoryOriginalService;
 import com.wjp.waicodermotherbackend.service.ChatHistoryService;
+import com.wjp.waicodermotherbackend.utils.SpringContextUtil;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -31,20 +32,20 @@ import java.time.Duration;
 @Slf4j
 public class AiCodeGeneratorServiceFactory {
 
-    @Resource
+    @Resource(name = "openAiChatModel")
     private ChatModel chatModel;
 
-    /**
-     *deepseek-chat 模型
-      */
-    @Resource
-    private StreamingChatModel openAiStreamingChatModel;
-
-    /**
-     * deepseek-reasoner 模型
-     */
-    @Resource
-    private StreamingChatModel reasoningStreamingChatModel;
+//    /**
+//     *deepseek-chat 模型
+//      */
+//    @Resource
+//    private StreamingChatModel openAiStreamingChatModel;
+//
+//    /**
+//     * deepseek-reasoner 模型
+//     */
+//    @Resource
+//    private StreamingChatModel reasoningStreamingChatModel;
 
     @Resource
     private RedisChatMemoryStore redisChatMemoryStore;
@@ -128,6 +129,10 @@ public class AiCodeGeneratorServiceFactory {
        switch(codeGenType) {
            // Vue项目生成使用推理模型
            case VUE_PROJECT -> {
+               // 使用多例模式解决并发问题
+               // 之所以不用之前 @Resource定义的模型，是因为他只会初始化一次，后面就会一直用这个实例，那么后面的所有请求都会用同一个实例，并发下会产生冲突
+               // 而在这里每次调用都会重新获取实例，所以就不会导致冲突问题了
+               StreamingChatModel reasoningStreamingChatModel = SpringContextUtil.getBean("reasoningStreamingChatModelPrototype", StreamingChatModel.class);
                // 从数据库加载历史对话到缓存中，由于多了工具调用相关信息，加载的最大数量稍微大些
                chatHistoryOriginalService.loadOriginalChatHistoryToMemory(appId, chatMemory, 50);
                aiCodeGeneratorService = AiServices.builder(AiCodeGeneratorService.class)
@@ -145,6 +150,10 @@ public class AiCodeGeneratorServiceFactory {
            }
            // HTML 和 多文件生成使用默认模型
            case HTML, MULTI_FILE -> {
+               // 使用多例模式解决并发问题
+               // 之所以不用之前 @Resource定义的模型，是因为他只会初始化一次，后面就会一直用这个实例，那么后面的所有请求都会用同一个实例，并发下会产生冲突
+               // 而在这里每次调用都会重新获取实例，所以就不会导致冲突问题了
+               StreamingChatModel openAiStreamingChatModel = SpringContextUtil.getBean("streamingChatModelPrototype", StreamingChatModel.class);
                // 加载历史会话记录
                chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 20);
                aiCodeGeneratorService = AiServices.builder(AiCodeGeneratorService.class)
