@@ -1,14 +1,11 @@
 package com.wjp.waicodermotherbackend.core.handler;
 
-import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.wjp.waicodermotherbackend.ai.model.message.*;
 import com.wjp.waicodermotherbackend.ai.tools.BaseTool;
 import com.wjp.waicodermotherbackend.ai.tools.ToolManager;
-import com.wjp.waicodermotherbackend.constant.AppConstant;
-import com.wjp.waicodermotherbackend.core.builder.VueProjectBuilder;
 import com.wjp.waicodermotherbackend.model.entity.ChatHistoryOriginal;
 import com.wjp.waicodermotherbackend.model.entity.User;
 import com.wjp.waicodermotherbackend.model.enums.ChatHistoryMessageTypeEnum;
@@ -31,9 +28,6 @@ import java.util.Set;
 @Slf4j
 @Component
 public class JsonMessageStreamHandler {
-
-    @Resource
-    private VueProjectBuilder vueProjectBuilder;
 
     @Resource
     private ToolManager toolManager;
@@ -96,9 +90,7 @@ public class JsonMessageStreamHandler {
                         // 工具调用后的 AI 响应，需要单独保存
                         chatHistoryOriginalService.addOriginalChatMessage(appId, aiResponseStr, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
                     }
-                    // 异步构建 Vue项目
-                    String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
-                    vueProjectBuilder.buildProjectAsync(projectPath);
+
                 })
                 .doOnError(error -> {
                     // 如果AI回复失败，也要记录错误消息

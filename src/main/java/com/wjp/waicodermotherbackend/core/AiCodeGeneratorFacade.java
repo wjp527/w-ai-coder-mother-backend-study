@@ -9,6 +9,8 @@ import com.wjp.waicodermotherbackend.ai.model.MultiFileCodeResult;
 import com.wjp.waicodermotherbackend.ai.model.message.AIResponseMessage;
 import com.wjp.waicodermotherbackend.ai.model.message.ToolExecutedMessage;
 import com.wjp.waicodermotherbackend.ai.model.message.ToolRequestMessage;
+import com.wjp.waicodermotherbackend.constant.AppConstant;
+import com.wjp.waicodermotherbackend.core.builder.VueProjectBuilder;
 import com.wjp.waicodermotherbackend.core.parser.CodeParserExecutor;
 import com.wjp.waicodermotherbackend.core.saver.CodeFileSaverExecutor;
 import com.wjp.waicodermotherbackend.exception.BusinessException;
@@ -39,6 +41,9 @@ public class AiCodeGeneratorFacade {
 
     @Resource
     private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
+
+    @Resource
+    private VueProjectBuilder vueProjectBuilder;
 
     // region 单/多文件保存
     /**
@@ -117,7 +122,7 @@ public class AiCodeGeneratorFacade {
                 TokenStream tokenStream = aiCodeGeneratorService.generateVueProjectCodeStream(appId, userMessage);
                 // 2、处理代码流
                 // 注意：VUE_PROJECT 类型在流式生成过程中已经通过 FileWriteTool 实时写入文件，所以不需要在流式完成后再次保存
-                yield processTokenStream(tokenStream);
+                yield processTokenStream(tokenStream, appId);
             }
             default -> {
                 String errStr = "不支持的代码生成类型:" + codeGenTypeEnum.getValue();
@@ -136,7 +141,7 @@ public class AiCodeGeneratorFacade {
      *  2、工具调用请求 -> 回调: onPartialToolExecutionRequest，参数：ToolRequestMessage
      *  3、工具执行完毕结果 -> 回调：onToolExecuted，参数：ToolExecutedMessage
      */
-    private Flux<String> processTokenStream(TokenStream tokenStream) {
+    private Flux<String> processTokenStream(TokenStream tokenStream, Long appId) {
         // create: 手动创建响应式流
         // sink: 向订阅者发送数据
         return Flux.create(sink -> {
@@ -167,6 +172,9 @@ public class AiCodeGeneratorFacade {
             // onCompleteResponse: 注册完整响应回调
             // chatResponse: 完整的聊天响应对象
             .onCompleteResponse((ChatResponse chatResponse) -> {
+                // 同步构建 Vue项目
+                String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
+                vueProjectBuilder.buildProject(projectPath);
                 // 完成流
                 sink.complete();
             })
