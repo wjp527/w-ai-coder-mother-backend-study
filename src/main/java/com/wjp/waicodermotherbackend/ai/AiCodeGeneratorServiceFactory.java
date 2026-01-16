@@ -32,6 +32,7 @@ import java.time.Duration;
 @Slf4j
 public class AiCodeGeneratorServiceFactory {
 
+    // 指定注入 openAiChatModel 模型
     @Resource(name = "openAiChatModel")
     private ChatModel chatModel;
 

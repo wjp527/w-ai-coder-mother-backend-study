@@ -23,6 +23,7 @@ public class AiCodeGenTypeRoutingServiceFactory {
      * @return
      */
     public AiCodeGenTypeRoutingService createAiCodeGenTypeRoutingService() {
+        // 使用多例模式解决并发问题
         ChatModel chatModel = SpringContextUtil.getBean("routingChatModelPrototype", ChatModel.class);
         return AiServices.builder(AiCodeGenTypeRoutingService.class)
                 .chatModel(chatModel)

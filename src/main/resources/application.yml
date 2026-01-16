@@ -16,6 +16,7 @@ spring:
       password:
       # 代表 redis key的过期时间
       ttl: 3600
+      database: 0
 
   # session 配置 【后端配置】
   session:
