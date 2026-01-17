@@ -18,6 +18,8 @@ import com.wjp.waicodermotherbackend.exception.ThrowUtils;
 import com.wjp.waicodermotherbackend.model.dto.app.*;
 import com.wjp.waicodermotherbackend.model.entity.User;
 import com.wjp.waicodermotherbackend.model.enums.CodeGenTypeEnum;
+import com.wjp.waicodermotherbackend.ratelimit.annotation.RateLimit;
+import com.wjp.waicodermotherbackend.ratelimit.enums.RateLimitType;
 import com.wjp.waicodermotherbackend.service.ProjectDownloadService;
 import com.wjp.waicodermotherbackend.service.UserService;
 import jakarta.annotation.Resource;
@@ -78,6 +80,19 @@ public class AppController {
      * @return 生成结果流
      */
     @GetMapping(value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    /**
+     * 限流
+     * limitType: 限流类型
+     * rate: 每秒请求次数
+     * rateInterval: 时间窗口，多少秒请求 rate次
+     * message: 提示语
+     */
+    @RateLimit(
+            limitType = RateLimitType.USER,
+            rate = 2,
+            rateInterval = 60,
+            message = "AI 对话请求过于频繁"
+    )
     public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId,
                                                        @RequestParam String message,
                                                        HttpServletRequest request) {
