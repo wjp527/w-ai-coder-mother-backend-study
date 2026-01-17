@@ -2,6 +2,8 @@ package com.wjp.waicodermotherbackend.ai;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.wjp.waicodermotherbackend.ai.guardrail.PromptSafetyInputGuardrail;
+import com.wjp.waicodermotherbackend.ai.guardrail.RetryOutputGuardrail;
 import com.wjp.waicodermotherbackend.ai.tools.*;
 import com.wjp.waicodermotherbackend.config.ReasoningStreamingChatModelConfig;
 import com.wjp.waicodermotherbackend.config.RedisChatMemoryStoreConfig;
@@ -143,10 +145,16 @@ public class AiCodeGeneratorServiceFactory {
                        .chatMemoryProvider(memoryId -> chatMemory) // 对话记忆
                        // 绑定工具
                        .tools(toolManager.getAllTools())
+                       // 最大调用工具的次数
+                       .maxSequentialToolsInvocations(20)
                        // 处理工具调用幻觉问题，出现幻觉，进入错误处理
                        .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                                toolExecutionRequest, "Error: there is no tool called" + toolExecutionRequest.name()
                        ))
+                       // 输入护轨
+                       .inputGuardrails(new PromptSafetyInputGuardrail())
+                       // 输出护轨 为了流式输出，这里不使用，因为开启护轨，流式输出会失效
+                       // .outputGuardrails(new RetryOutputGuardrail())
                        .build();
            }
            // HTML 和 多文件生成使用默认模型
@@ -161,6 +169,12 @@ public class AiCodeGeneratorServiceFactory {
                        .chatModel(chatModel) // 普通模型
                        .streamingChatModel(openAiStreamingChatModel) // 流式模型
                        .chatMemory(chatMemory) // 对话记忆
+                       // 最大调用工具的次数
+                       .maxSequentialToolsInvocations(20)
+                       // 输入护轨
+                       .inputGuardrails(new PromptSafetyInputGuardrail())
+                       // 输出护轨 为了流式输出，这里不使用，因为开启护轨，流式输出会失效
+                       // .outputGuardrails(new RetryOutputGuardrail())
                        .build();
            }
            default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR,
