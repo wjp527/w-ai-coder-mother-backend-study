@@ -1,12 +1,16 @@
 package com.wjp.waicodermotherbackend.config;
 
+import com.wjp.waicodermotherbackend.monitor.AiModelMonitorListener;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
+import jakarta.annotation.Resource;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
+
+import java.util.List;
 
 /**
  * 多例流式对话模型配置
@@ -23,6 +27,11 @@ public class StreamingChatModelConfig {
     private Double temperature;
     private boolean logRequests;
     private boolean logResponses;
+    /**
+     * 推理模型监听器
+     */
+    @Resource
+    private AiModelMonitorListener aiModelMonitorListener;
 
     /**
      * 非推理流式模型
@@ -41,6 +50,8 @@ public class StreamingChatModelConfig {
                 .temperature(temperature)
                 .logRequests(logRequests)
                 .logResponses(logResponses)
+                // 添加监听器
+                .listeners(List.of(aiModelMonitorListener))
                 .build();
     }
 

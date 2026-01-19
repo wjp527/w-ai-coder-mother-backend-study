@@ -1,12 +1,18 @@
 package com.wjp.waicodermotherbackend.config;
 
+import com.wjp.waicodermotherbackend.monitor.AiModelMetricsCollector;
+import com.wjp.waicodermotherbackend.monitor.AiModelMonitorListener;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
+import jakarta.annotation.Resource;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 推理流式模型配置
@@ -31,6 +37,12 @@ public class ReasoningStreamingChatModelConfig {
     private Boolean logResponses = false;
 
     /**
+     * 推理模型监听器
+     */
+    @Resource
+    private AiModelMonitorListener aiModelMonitorListener;
+
+    /**
      * 推理流式模型 (用于 Vue 项目生成，带工具调用)
      */
     @Bean
@@ -47,6 +59,8 @@ public class ReasoningStreamingChatModelConfig {
                 .temperature(temperature)
                 .logRequests(logRequests)
                 .logResponses(logResponses)
+                // 监控
+                .listeners(List.of(aiModelMonitorListener))
                 .build();
     }
 }
