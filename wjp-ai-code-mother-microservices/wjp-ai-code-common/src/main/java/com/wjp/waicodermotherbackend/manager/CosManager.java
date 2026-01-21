@@ -6,6 +6,7 @@ import com.qcloud.cos.model.PutObjectResult;
 import com.wjp.waicodermotherbackend.config.CosClientConfig;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -17,6 +18,8 @@ import java.io.File;
  */
 @Component
 @Slf4j
+// 确保了只有在配置了COS相关参数才会加载相关的Bean，避免了启动时的配置错误
+@ConditionalOnBean(CosClientConfig.class)
 public class CosManager {
 
     @Resource

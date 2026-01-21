@@ -11,6 +11,7 @@
     <groupId>com.wjp</groupId>
     <artifactId>w-ai-coder-mother-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
     <name>w-ai-coder-mother-backend</name>
     <description>w-ai-coder-mother-backend</description>
     <url/>
