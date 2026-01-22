@@ -1,4 +1,4 @@
-package com.wjp.waicodermotherbackend.config;
+package com.wjp.waicodermotherbackend.ai.config;
 
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;

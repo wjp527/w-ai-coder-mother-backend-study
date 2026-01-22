@@ -1,4 +1,4 @@
-package com.wjp.waicodermotherbackend.config;
+package com.wjp.waicodermotherbackend.ai.config;
 
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import lombok.Data;

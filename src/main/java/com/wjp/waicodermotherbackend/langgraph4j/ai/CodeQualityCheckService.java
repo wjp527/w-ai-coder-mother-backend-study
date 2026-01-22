@@ -16,7 +16,7 @@ public interface CodeQualityCheckService {
      * @param codeContent 代码内容
      * @return 代码质量检测结果
      */
-    @SystemMessage(fromResource = "prompt/code-quality-check-system-prompt.txt")
+    @SystemMessage(fromResource = "wjp-ai-code-ai/src/main/resources/prompt/code-quality-check-system-prompt.txt")
     QualityResult checkCodeQuality(@UserMessage String codeContent);
 
 }

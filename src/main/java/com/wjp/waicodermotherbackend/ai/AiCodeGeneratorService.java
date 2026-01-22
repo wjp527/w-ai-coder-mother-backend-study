@@ -20,7 +20,7 @@ public interface AiCodeGeneratorService {
      * @param userMessage 用户的提示词
      * @return AI 生成的代码
      */
-    @SystemMessage(fromResource = "prompt/codegen-html-system-prompt.txt")
+    @SystemMessage(fromResource = "wjp-ai-code-ai/src/main/resources/prompt/codegen-html-system-prompt.txt")
     HtmlCodeResult generateHtmlCode(@UserMessage String userMessage);
 
     /**
@@ -28,7 +28,7 @@ public interface AiCodeGeneratorService {
      * @param userMessage 用户的提示词
      * @return AI 生成的代码
      */
-    @SystemMessage(fromResource = "prompt/codegen-multi-file-system-prompt.txt")
+    @SystemMessage(fromResource = "wjp-ai-code-ai/src/main/resources/prompt/codegen-multi-file-system-prompt.txt")
     MultiFileCodeResult generateMultiFileCode(@UserMessage String userMessage);
 
 
@@ -38,7 +38,7 @@ public interface AiCodeGeneratorService {
      * @param userMessage 用户的提示词
      * @return AI 生成的代码
      */
-    @SystemMessage(fromResource = "prompt/codegen-html-system-prompt.txt")
+    @SystemMessage(fromResource = "wjp-ai-code-ai/src/main/resources/prompt/codegen-html-system-prompt.txt")
     Flux<String> generateHtmlCodeStream(@UserMessage String userMessage);
 
     /**
@@ -46,7 +46,7 @@ public interface AiCodeGeneratorService {
      * @param userMessage 用户的提示词
      * @return AI 生成的代码
      */
-    @SystemMessage(fromResource = "prompt/codegen-multi-file-system-prompt.txt")
+    @SystemMessage(fromResource = "wjp-ai-code-ai/src/main/resources/prompt/codegen-multi-file-system-prompt.txt")
     Flux<String> generateMultiFileCodeStream(@UserMessage String userMessage);
 
     // endregion
@@ -60,7 +60,7 @@ public interface AiCodeGeneratorService {
      * @param userMessage 用户的提示词
      * @return AI 生成的代码
      */
-    @SystemMessage(fromResource = "prompt/codegen-vue-project-system-prompt.txt")
+    @SystemMessage(fromResource = "wjp-ai-code-ai/src/main/resources/prompt/codegen-vue-project-system-prompt.txt")
     TokenStream generateVueProjectCodeStream(@MemoryId long appId, @UserMessage String userMessage);
 
     // endregion

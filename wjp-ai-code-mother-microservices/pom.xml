@@ -15,6 +15,7 @@
         <module>wjp-ai-code-user</module>
         <module>wjp-ai-code-app</module>
         <module>wjp-ai-code-screenshot</module>
+        <module>wjp-ai-code-ai</module>
     </modules>
 
     <properties>
