@@ -2,10 +2,9 @@ package com.wjp.waicodermotherbackend.ratelimit.aspect;
 
 import com.wjp.waicodermotherbackend.exception.BusinessException;
 import com.wjp.waicodermotherbackend.exception.ErrorCode;
+import com.wjp.waicodermotherbackend.innerservice.InnerUserService;
 import com.wjp.waicodermotherbackend.model.entity.User;
 import com.wjp.waicodermotherbackend.ratelimit.annotation.RateLimit;
-import com.wjp.waicodermotherbackend.ratelimit.enums.RateLimitType;
-import com.wjp.waicodermotherbackend.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -35,8 +34,6 @@ public class RateLimitAspect {
     @Resource
     private RedissonClient redissonClient;
 
-    @Resource
-    private UserService userService;
 
     @Before("@annotation(rateLimit)")
     public void doBefore(JoinPoint point, RateLimit rateLimit) {
@@ -83,7 +80,7 @@ public class RateLimitAspect {
                     ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
                     if(attributes != null) {
                         HttpServletRequest request = attributes.getRequest();
-                        User loginUser = userService.getLoginUser(request);
+                        User loginUser = InnerUserService.getLoginUser(request);
                         keyBuilder.append("user:")
                                 .append(loginUser.getId());
                     } else {

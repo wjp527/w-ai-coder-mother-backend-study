@@ -6,8 +6,6 @@ import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.UserMessage;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
 /**

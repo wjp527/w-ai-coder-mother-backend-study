@@ -8,18 +8,17 @@ import com.wjp.waicodermotherbackend.common.ResultUtils;
 import com.wjp.waicodermotherbackend.constant.UserConstant;
 import com.wjp.waicodermotherbackend.exception.ErrorCode;
 import com.wjp.waicodermotherbackend.exception.ThrowUtils;
+import com.wjp.waicodermotherbackend.innerservice.InnerUserService;
 import com.wjp.waicodermotherbackend.model.dto.chathistory.ChatHistoryQueryRequest;
 import com.wjp.waicodermotherbackend.model.entity.User;
-import com.wjp.waicodermotherbackend.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import com.wjp.waicodermotherbackend.model.entity.ChatHistory;
 import com.wjp.waicodermotherbackend.service.ChatHistoryService;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 /**
  * 对话历史 控制层。
@@ -34,7 +33,8 @@ public class ChatHistoryController {
     private ChatHistoryService chatHistoryService;
 
     @Resource
-    private UserService userService;
+    @Lazy
+    private InnerUserService userService;
 
 
     /**
@@ -51,7 +51,7 @@ public class ChatHistoryController {
                                                               @RequestParam(defaultValue = "10") int pageSize,
                                                               @RequestParam(required = false) LocalDateTime lastCreateTime,
                                                               HttpServletRequest request) {
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = InnerUserService.getLoginUser(request);
         Page<ChatHistory> result = chatHistoryService.listAppChatHistoryByPage(appId, pageSize, lastCreateTime, loginUser);
         return ResultUtils.success(result);
     }

@@ -1,6 +1,5 @@
 package com.wjp.waicodermotherbackend.core.parser;
 
-import com.wjp.waicodermotherbackend.ai.model.HtmlCodeResult;
 import com.wjp.waicodermotherbackend.ai.model.MultiFileCodeResult;
 
 import java.util.regex.Matcher;

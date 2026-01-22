@@ -17,8 +17,6 @@ import org.springframework.web.servlet.HandlerMapping;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.File;
 
-import static com.wjp.waicodermotherbackend.constant.AppConstant.CODE_DEPLOY_ROOT_DIR;
-import static com.wjp.waicodermotherbackend.constant.AppConstant.CODE_OUTPUT_ROOT_DIR;
 import static com.wjp.waicodermotherbackend.exception.ErrorCode.SYSTEM_ERROR;
 
 /**

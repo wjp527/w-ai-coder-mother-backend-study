@@ -17,6 +17,8 @@ import com.wjp.waicodermotherbackend.core.handler.StreamHandlerExecutor;
 import com.wjp.waicodermotherbackend.exception.BusinessException;
 import com.wjp.waicodermotherbackend.exception.ErrorCode;
 import com.wjp.waicodermotherbackend.exception.ThrowUtils;
+import com.wjp.waicodermotherbackend.innerservice.InnerScreenshotService;
+import com.wjp.waicodermotherbackend.innerservice.InnerUserService;
 import com.wjp.waicodermotherbackend.model.dto.app.AppAddRequest;
 import com.wjp.waicodermotherbackend.model.dto.app.AppQueryRequest;
 import com.wjp.waicodermotherbackend.model.dto.app.AppVO;
@@ -26,18 +28,15 @@ import com.wjp.waicodermotherbackend.model.entity.User;
 import com.wjp.waicodermotherbackend.model.enums.ChatHistoryMessageTypeEnum;
 import com.wjp.waicodermotherbackend.model.enums.CodeGenTypeEnum;
 import com.wjp.waicodermotherbackend.model.vo.UserVO;
-import com.wjp.waicodermotherbackend.monitor.MonitorContext;
-import com.wjp.waicodermotherbackend.monitor.MonitorContextHolder;
 import com.wjp.waicodermotherbackend.service.*;
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
 import java.io.Serializable;
-import java.lang.management.MonitorInfo;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -55,7 +54,8 @@ import java.util.stream.Collectors;
 public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
 
     @Resource
-    private UserService userService;
+    @Lazy
+    private InnerUserService userService;
 
     @Resource
     private ChatHistoryService chatHistoryService;
@@ -76,7 +76,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private VueProjectBuilder vueProjectBuilder;
 
     @Resource
-    private ScreenshotService screenshotService;
+    @Lazy
+    private InnerScreenshotService screenshotService;
 
     @Resource
     private AiCodeGenTypeRoutingServiceFactory aiCodeGenTypeRoutingServiceFactory;
@@ -131,13 +132,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 5. 将用户的消息保存到对话记忆里
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
         chatHistoryOriginalService.addOriginalChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
-        // 6、设置监控上下文（用户Id 和 应用Id）
-        MonitorContext monitorContext = MonitorContext.builder()
-                .userId(String.valueOf(loginUser.getId()))
-                .appId(String.valueOf(app.getId()))
-                .build();
-        // 设置监控上下文
-        MonitorContextHolder.setContext(monitorContext);
+
         // 7、调用 AI服务生成代码
         // 这里不使用 app 里面的提示词，是因为这个方法不仅仅用于创建应用，后面还需要修改，多轮对话，反不能一直用最一开始的提示词吧
         Flux<String> contentFlux = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId, version);
@@ -145,11 +140,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 8、收集AI响应内容并在完成后记录到对话历史
         StringBuilder aiResponseBuilder = new StringBuilder();
         // 9、收集AI 响应内容并在完成后记录到对话历史中
-        return streamHandlerExecutor.doExecute(contentFlux, chatHistoryService,chatHistoryOriginalService, appId, loginUser, codeGenTypeEnum)
-                .doFinally(singalType -> {
-                    // 流结束时清理（无论成功/失败/取消）
-                    MonitorContextHolder.clearContext();
-                });
+        return streamHandlerExecutor.doExecute(contentFlux, chatHistoryService,chatHistoryOriginalService, appId, loginUser, codeGenTypeEnum);
     }
 
     /**

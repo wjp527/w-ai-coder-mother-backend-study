@@ -23,7 +23,6 @@ import org.springframework.stereotype.Service;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * 对话历史（加载对话记忆，包括工具调用信息） 服务层实现。

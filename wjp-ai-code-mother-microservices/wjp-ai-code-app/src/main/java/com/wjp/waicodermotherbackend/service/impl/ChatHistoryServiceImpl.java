@@ -16,7 +16,6 @@ import com.wjp.waicodermotherbackend.model.entity.User;
 import com.wjp.waicodermotherbackend.model.enums.ChatHistoryMessageTypeEnum;
 import com.wjp.waicodermotherbackend.service.AppService;
 import com.wjp.waicodermotherbackend.service.ChatHistoryService;
-import com.wjp.waicodermotherbackend.service.UserService;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -37,8 +36,6 @@ import java.util.List;
 @Slf4j
 public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatHistory>  implements ChatHistoryService{
 
-    @Resource
-    private UserService userService;
 
     @Resource
     @Lazy
