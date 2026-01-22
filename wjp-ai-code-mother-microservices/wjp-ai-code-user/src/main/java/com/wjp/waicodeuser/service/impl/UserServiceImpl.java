@@ -1,4 +1,4 @@
-package com.wjp.waicodermotherbackend.service.impl;
+package com.wjp.waicodeuser.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
@@ -10,11 +10,11 @@ import com.wjp.waicodermotherbackend.exception.BusinessException;
 import com.wjp.waicodermotherbackend.exception.ErrorCode;
 import com.wjp.waicodermotherbackend.model.dto.user.UserQueryRequest;
 import com.wjp.waicodermotherbackend.model.entity.User;
-import com.wjp.waicodermotherbackend.mapper.UserMapper;
 import com.wjp.waicodermotherbackend.model.enums.UserRoleEnum;
 import com.wjp.waicodermotherbackend.model.vo.LoginUserVO;
 import com.wjp.waicodermotherbackend.model.vo.UserVO;
-import com.wjp.waicodermotherbackend.service.UserService;
+import com.wjp.waicodeuser.mapper.UserMapper;
+import com.wjp.waicodeuser.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;

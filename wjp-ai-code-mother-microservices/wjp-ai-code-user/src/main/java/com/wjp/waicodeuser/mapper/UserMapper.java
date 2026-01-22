@@ -1,4 +1,4 @@
-package com.wjp.waicodermotherbackend.mapper;
+package com.wjp.waicodeuser.mapper;
 
 import com.mybatisflex.core.BaseMapper;
 import com.wjp.waicodermotherbackend.model.entity.User;

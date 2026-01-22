@@ -1,4 +1,4 @@
-package com.wjp.waicodermotherbackend.service;
+package com.wjp.waicodeuser.service;
 
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;

@@ -1,4 +1,4 @@
-package com.wjp.waicodermotherbackend.controller;
+package com.wjp.waicodeuser.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.mybatisflex.core.paginate.Page;
@@ -12,6 +12,7 @@ import com.wjp.waicodermotherbackend.exception.ThrowUtils;
 import com.wjp.waicodermotherbackend.model.dto.user.*;
 import com.wjp.waicodermotherbackend.model.vo.LoginUserVO;
 import com.wjp.waicodermotherbackend.model.vo.UserVO;
+import com.wjp.waicodeuser.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,7 +23,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.wjp.waicodermotherbackend.model.entity.User;
-import com.wjp.waicodermotherbackend.service.UserService;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
