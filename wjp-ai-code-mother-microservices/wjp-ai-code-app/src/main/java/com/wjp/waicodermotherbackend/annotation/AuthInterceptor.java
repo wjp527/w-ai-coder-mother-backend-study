@@ -7,6 +7,7 @@ import com.wjp.waicodermotherbackend.model.entity.User;
 import com.wjp.waicodermotherbackend.model.enums.UserRoleEnum;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -20,8 +21,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @Component
 public class AuthInterceptor {
 
-    @Resource
-    @Lazy
+    @DubboReference
     private InnerUserService userService;
 
     /**

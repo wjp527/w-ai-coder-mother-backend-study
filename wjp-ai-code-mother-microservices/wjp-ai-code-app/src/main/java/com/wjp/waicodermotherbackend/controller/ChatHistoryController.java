@@ -32,9 +32,6 @@ public class ChatHistoryController {
     @Resource
     private ChatHistoryService chatHistoryService;
 
-    @Resource
-    @Lazy
-    private InnerUserService userService;
 
 
     /**
