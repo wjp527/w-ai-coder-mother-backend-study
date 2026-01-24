@@ -54,7 +54,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
 
-    @DubboReference
+    @DubboReference(check = false)
     private InnerUserService userService;
 
     @Resource
@@ -75,7 +75,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private VueProjectBuilder vueProjectBuilder;
 
-    @DubboReference
+    @DubboReference(check = false)
     private InnerScreenshotService screenshotService;
 
     @Resource

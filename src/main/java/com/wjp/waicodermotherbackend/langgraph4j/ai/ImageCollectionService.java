@@ -18,7 +18,7 @@ public interface ImageCollectionService {
      * @param userPrompt 用户提示词
      * @return 图片资源列表
      */
-    @SystemMessage(fromResource = "wjp-ai-code-ai/src/main/resources/prompt/image-collection-system-prompt.txt")
+    @SystemMessage(fromResource = "prompt/image-collection-system-prompt.txt")
     String collectImages(@UserMessage String userPrompt);
 
 }

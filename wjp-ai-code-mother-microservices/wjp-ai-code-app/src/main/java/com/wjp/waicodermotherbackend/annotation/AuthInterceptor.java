@@ -21,7 +21,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @Component
 public class AuthInterceptor {
 
-    @DubboReference
+    @DubboReference(check = false)
     private InnerUserService userService;
 
     /**

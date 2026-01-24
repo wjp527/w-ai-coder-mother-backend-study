@@ -1,6 +1,9 @@
 spring:
   application:
     name: wjp-ai-code-user
+  # 运行环境
+  profiles:
+    active: local
   # session
   session:
     store-type: redis

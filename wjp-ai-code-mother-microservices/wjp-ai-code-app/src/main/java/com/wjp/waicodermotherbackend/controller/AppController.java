@@ -58,7 +58,7 @@ public class AppController {
     @Resource
     private AppService appService;
 
-    @DubboReference
+    @DubboReference(check = false)
     private InnerUserService userService;
 
     @Resource

@@ -86,5 +86,8 @@ dubbo:
     port: 50053
   consumer:
     timeout: 120000
+    # 启动时不检查提供者是否可用，避免因时序导致启动失败；首次调用时再查找
+    check: false
   provider:
     timeout: 120000
+
